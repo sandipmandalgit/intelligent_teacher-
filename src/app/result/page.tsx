@@ -5,16 +5,18 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  CheckCircle2,
   FileQuestion,
   Loader2,
   Plus,
   RotateCcw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { type GradingResult } from "@/lib/result";
+import { type GradingResult, type LessonPlan } from "@/lib/result";
 import { SummaryHero } from "@/components/result/SummaryHero";
 import { QuestionCard } from "@/components/result/QuestionCard";
 import { CommonMistakes } from "@/components/result/CommonMistakes";
@@ -24,6 +26,15 @@ const STORAGE_KEY = "shikshaksathi:lastResult";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 type LoadState = "loading" | "empty" | "ready";
+type SubmitState = "idle" | "submitting" | "done";
+
+const META_KEY = "shikshaksathi:lastSessionMeta";
+
+interface SessionMeta {
+  session_id: string | null;
+  roll_number: string | null;
+  subject_override: string | null;
+}
 
 /** Minimal structural check so a malformed payload falls back to the empty state. */
 function isGradingResult(value: unknown): value is GradingResult {
@@ -64,6 +75,10 @@ export default function ResultPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [result, setResult] = useState<GradingResult | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
+  const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [submittedName, setSubmittedName] = useState("");
+  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
 
   useEffect(() => {
     try {
@@ -82,7 +97,54 @@ export default function ResultPage() {
     } catch {
       setState("empty");
     }
+    // Session linkage meta — powers the "Submit Final Grade" action.
+    try {
+      const metaRaw = localStorage.getItem(META_KEY);
+      if (metaRaw) {
+        const meta = JSON.parse(metaRaw) as SessionMeta;
+        if (meta && typeof meta === "object") setSessionMeta(meta);
+      }
+    } catch {
+      // non-fatal
+    }
   }, []);
+
+  async function handleSubmitFinal() {
+    if (!sessionMeta?.roll_number) return;
+    if (!sessionMeta.session_id) {
+      toast.error(
+        "This grade couldn't be linked — re-grade from the upload page with a roll number set.",
+      );
+      return;
+    }
+    setSubmitState("submitting");
+    try {
+      const res = await fetch("/api/archive/finalize", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionMeta.session_id,
+          roll_number: sessionMeta.roll_number,
+          subject_override: sessionMeta.subject_override ?? undefined,
+          lesson_plan: lessonPlan ?? undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        toast.error(data?.error ?? "Could not submit the grade.");
+        setSubmitState("idle");
+        return;
+      }
+      const name =
+        typeof data.student_name === "string" ? data.student_name : "";
+      setSubmittedName(name);
+      setSubmitState("done");
+      toast.success(`Saved to ${name || "the student"}'s permanent record`);
+    } catch {
+      toast.error("Network error — please try again.");
+      setSubmitState("idle");
+    }
+  }
 
   // --- Loading: brief spinner to avoid an empty-state flash ---------------
   if (state === "loading") {
@@ -179,6 +241,52 @@ export default function ResultPage() {
         </Button>
       </Reveal>
 
+      {/* Submit final grade to the student record */}
+      {sessionMeta?.roll_number && (
+        <Reveal delay={0.05}>
+          <div className="rounded-xl border border-success/40 bg-success/10 p-4">
+            {submitState === "done" ? (
+              <p className="flex items-center justify-center gap-2 text-center text-sm font-bold text-success">
+                <CheckCircle2 className="h-5 w-5" />
+                Submitted to{" "}
+                {submittedName || `roll ${sessionMeta.roll_number}`}&apos;s
+                permanent record
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-foreground">
+                  <p>
+                    <span className="font-semibold">
+                      Graded for roll {sessionMeta.roll_number}.
+                    </span>{" "}
+                    Submit to save it to the student&apos;s permanent record.
+                  </p>
+                  {lessonPlan && (
+                    <p className="mt-0.5 text-xs font-medium text-success">
+                      ✓ Your lesson plan will be saved with this grade
+                    </p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSubmitFinal}
+                  disabled={submitState === "submitting"}
+                  className="bg-success text-success-foreground hover:bg-success/90"
+                >
+                  {submitState === "submitting" ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 />
+                  )}
+                  {submitState === "submitting"
+                    ? "Submitting…"
+                    : "Submit Final Grade to Student Record"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </Reveal>
+      )}
+
       {/* Summary hero */}
       <Reveal delay={0.1}>
         <SummaryHero
@@ -228,6 +336,8 @@ export default function ResultPage() {
             feedbackLanguage={
               graded_questions[0]?.feedback_language ?? "english"
             }
+            editable
+            onPlanChange={setLessonPlan}
           />
         </Reveal>
       )}

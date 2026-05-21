@@ -38,11 +38,19 @@ async function toBase64Sample(
   };
 }
 
+/** Reads an optional non-empty string form field. */
+function optionalString(formData: FormData, key: string): string | null {
+  const raw = formData.get(key);
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
 /**
- * Anonymously archives a completed grading session — its summary and the
- * original page images — to power the "crowdsourced handwriting training
- * archive". Archive failures must NEVER block the user's grading flow,
- * so the upload page fires this fire-and-forget.
+ * Anonymously archives a completed grading session — its summary, the
+ * full grading result, and the original page images. When a roll number
+ * is supplied the session is linked to that student; anonymous grading
+ * (no roll number) still works and is stored with roll_number: null.
+ *
+ * Archive failures must NEVER block the user's grading flow.
  */
 export async function POST(req: Request) {
   try {
@@ -98,6 +106,13 @@ export async function POST(req: Request) {
         ? answerScriptEntry
         : null;
 
+    // --- Optional platform fields -----------------------------------------
+    const rollNumber = optionalString(formData, "roll_number");
+    const subjectOverride = optionalString(formData, "subject_override");
+    const teacherId = optionalString(formData, "teacher_id");
+    const finalizedRaw = formData.get("finalized");
+    const finalized = finalizedRaw === "true" || finalizedRaw === "1";
+
     // --- Convert files to base64 (skipping anything over 5MB) -------------
     const studentPageSamples: Base64Sample[] = [];
     for (let i = 0; i < studentPages.length; i++) {
@@ -115,9 +130,12 @@ export async function POST(req: Request) {
     // --- Build the archive document ---------------------------------------
     const summary = gradingResult.student_summary;
     const questions = gradingResult.graded_questions ?? [];
+    const subject =
+      subjectOverride || gradingResult.answer_script?.subject || "Unknown";
+
     const doc = {
       created_at: new Date(),
-      subject: gradingResult.answer_script?.subject ?? "Unknown",
+      subject,
       total_score: summary?.total_score ?? 0,
       total_max_marks: summary?.total_max_marks ?? 0,
       percentage: summary?.percentage ?? 0,
@@ -127,7 +145,7 @@ export async function POST(req: Request) {
       common_mistakes: gradingResult.common_mistakes ?? [],
       feedback_language: questions[0]?.feedback_language ?? "english",
       page_count: studentPages.length,
-      // Compact per-question summary — we don't need the full rubric here.
+      // Compact per-question summary — for dashboard aggregations.
       questions_summary: questions.map((q) => ({
         question_number: q.question_number,
         max_marks: q.max_marks,
@@ -136,12 +154,21 @@ export async function POST(req: Request) {
         readability_confidence: q.readability_confidence,
         source_pages: q.source_pages,
       })),
-      // Store images as base64 strings — fine for hackathon scale.
-      // For production we'd use GridFS or S3, but base64 keeps the demo simple.
+      // Full grading result — lets the student portal render rich
+      // breakdowns (rubric, feedback) for finalized sessions.
+      grading_result: gradingResult,
+      // Images as base64 — fine for hackathon scale.
       student_page_samples: studentPageSamples,
       answer_script_sample: answerScriptSample,
-      has_teacher_overrides: false, // future: track edits
-      anonymized: true, // explicit flag for the privacy story
+      // Platform linkage — null for anonymous grading.
+      roll_number: rollNumber,
+      subject_override: subjectOverride,
+      teacher_id: teacherId,
+      finalized,
+      submitted_at: null as Date | null,
+      lesson_plan: null as unknown,
+      has_teacher_overrides: false,
+      anonymized: rollNumber === null,
     };
 
     // --- Insert into grading_sessions -------------------------------------
@@ -159,7 +186,6 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (err) {
-    // Archive failures must never surface as a broken grading experience.
     console.error("[api/archive] error:", err);
     return NextResponse.json(
       {

@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { FileText, ScrollText, Sparkles, Wand2 } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  LogIn,
+  ScrollText,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { FileDropzone } from "@/components/upload/FileDropzone";
 import { GradingProgress } from "@/components/upload/GradingProgress";
@@ -15,6 +25,15 @@ import { LanguageSelector } from "@/components/upload/LanguageSelector";
 import { TrainingArchiveStats } from "@/components/TrainingArchiveStats";
 
 type Language = "bengali" | "hindi" | "english";
+
+interface TeacherInfo {
+  id: string;
+  name: string;
+}
+interface StudentLite {
+  roll_number: string;
+  name: string;
+}
 
 const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -80,7 +99,44 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>("bengali");
   const [isGrading, setIsGrading] = useState(false);
 
+  // Optional platform linkage (Step 9).
+  const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
+  const [students, setStudents] = useState<StudentLite[]>([]);
+  const [rollNumber, setRollNumber] = useState("");
+  const [subjectOverride, setSubjectOverride] = useState("");
+
   const canGrade = answerScript !== null && studentPages.length > 0;
+
+  // Detect a logged-in teacher so grades can be linked to their students.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/teacher/me");
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (cancelled || !data?.ok) return;
+        setTeacher({ id: data.teacher.id, name: data.teacher.name });
+        const sRes = await fetch("/api/teacher/students");
+        if (sRes.ok) {
+          const sData = await sRes.json().catch(() => null);
+          if (!cancelled && sData?.ok) setStudents(sData.students ?? []);
+        }
+      } catch {
+        // Not logged in / offline — anonymous grading still works.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleLogout() {
+    await fetch("/api/teacher/logout", { method: "POST" }).catch(() => {});
+    setTeacher(null);
+    setStudents([]);
+    toast.success("Logged out.");
+  }
 
   async function handleGrade() {
     if (!answerScript || studentPages.length === 0) return;
@@ -114,9 +170,20 @@ export default function Home() {
         return;
       }
 
-      // Fire-and-forget: contribute this session to the open handwriting
-      // archive. Never awaited — archive failures must not affect grading
-      // or the redirect to the result page.
+      // Meta the Result page reads to offer the "Submit Final Grade" action.
+      const sessionMeta: {
+        roll_number: string | null;
+        subject_override: string | null;
+        session_id: string | null;
+      } = {
+        roll_number: rollNumber.trim() || null,
+        subject_override: subjectOverride.trim() || null,
+        session_id: null,
+      };
+
+      // Archive the session. When a roll number is set we await the archive
+      // so we can capture its session_id (needed to finalize the grade).
+      // Anonymous grading stays fire-and-forget and never blocks the redirect.
       try {
         const archiveData = new FormData();
         archiveData.append("grading_result", JSON.stringify(payload));
@@ -124,26 +191,53 @@ export default function Home() {
           archiveData.append("student_pages", page),
         );
         archiveData.append("answer_script", answerScript);
-        fetch("/api/archive", { method: "POST", body: archiveData })
-          .then((archiveRes) => {
-            if (archiveRes.ok) {
-              toast.success(
-                "✓ Contributed to ShikshakSathi's open handwriting archive",
-              );
-            }
-          })
-          .catch((archiveErr) => {
-            console.warn("[archive] background archive failed:", archiveErr);
+        if (sessionMeta.roll_number)
+          archiveData.append("roll_number", sessionMeta.roll_number);
+        if (sessionMeta.subject_override)
+          archiveData.append("subject_override", sessionMeta.subject_override);
+        if (teacher?.id) archiveData.append("teacher_id", teacher.id);
+
+        if (sessionMeta.roll_number) {
+          const archiveRes = await fetch("/api/archive", {
+            method: "POST",
+            body: archiveData,
           });
+          const archiveJson = await archiveRes.json().catch(() => null);
+          if (archiveRes.ok && archiveJson?.session_id) {
+            sessionMeta.session_id = String(archiveJson.session_id);
+            toast.success(
+              "✓ Saved to the archive — submit on the next page to finalize",
+            );
+          }
+        } else {
+          fetch("/api/archive", { method: "POST", body: archiveData })
+            .then((archiveRes) => {
+              if (archiveRes.ok) {
+                toast.success(
+                  "✓ Contributed to ShikshakSathi's open handwriting archive",
+                );
+              }
+            })
+            .catch((archiveErr) => {
+              console.warn(
+                "[archive] background archive failed:",
+                archiveErr,
+              );
+            });
+        }
       } catch (archiveErr) {
-        console.warn("[archive] could not start archive request:", archiveErr);
+        console.warn("[archive] archive request failed:", archiveErr);
       }
 
-      // Persist for the result page and the (future) dashboard.
+      // Persist for the result page and the dashboard.
       try {
         localStorage.setItem(
           "shikshaksathi:lastResult",
           JSON.stringify(payload),
+        );
+        localStorage.setItem(
+          "shikshaksathi:lastSessionMeta",
+          JSON.stringify(sessionMeta),
         );
         const existingRaw = localStorage.getItem("shikshaksathi:allResults");
         let allResults: unknown[] = [];
@@ -204,7 +298,43 @@ export default function Home() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
+        {/* Teacher session strip */}
+        <div className="mb-2">
+          {teacher ? (
+            <div className="flex justify-end">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs">
+                <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                <span className="font-medium text-foreground">
+                  Logged in as {teacher.name}
+                </span>
+                <span className="text-border">·</span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Logout
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border border-border/70 bg-secondary/50 px-4 py-2.5 text-center text-xs text-muted-foreground">
+              <span>
+                Log in as a teacher to save grades to your student records
+              </span>
+              <span className="text-border">·</span>
+              <Link
+                href="/teacher/login"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                Login
+              </Link>
+            </div>
+          )}
+        </div>
+
         {/* Hero */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
@@ -263,6 +393,57 @@ export default function Home() {
             <Wand2 className="h-3.5 w-3.5" />
             Try sample exam
           </button>
+        </motion.div>
+
+        {/* Optional student linkage */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.22, ease: EASE }}
+          className="mb-3"
+        >
+          <div className="grid gap-4 rounded-2xl border border-border/70 bg-card p-4 sm:grid-cols-2 sm:p-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="roll-input">
+                Student Roll Number{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id="roll-input"
+                value={rollNumber}
+                onChange={(e) => setRollNumber(e.target.value)}
+                list={teacher ? "teacher-students" : undefined}
+                placeholder={
+                  teacher ? "Pick or type a roll number" : "e.g. CS2024-017"
+                }
+              />
+              {teacher && (
+                <datalist id="teacher-students">
+                  {students.map((s) => (
+                    <option key={s.roll_number} value={s.roll_number}>
+                      {s.name}
+                    </option>
+                  ))}
+                </datalist>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="subject-input">
+                Subject Override{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id="subject-input"
+                value={subjectOverride}
+                onChange={(e) => setSubjectOverride(e.target.value)}
+                placeholder="e.g. Operating Systems"
+              />
+            </div>
+          </div>
         </motion.div>
 
         {/* Main upload card */}

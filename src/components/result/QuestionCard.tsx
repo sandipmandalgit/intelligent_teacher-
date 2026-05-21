@@ -35,6 +35,8 @@ interface QuestionCardProps {
   defaultExpanded?: boolean;
   /** Called the first time a teacher overrides this question's score. */
   onEdit?: () => void;
+  /** When true, the score ring is not editable (e.g. the student portal). */
+  readOnly?: boolean;
 }
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -79,6 +81,7 @@ export function QuestionCard({
   question,
   defaultExpanded = false,
   onEdit,
+  readOnly = false,
 }: QuestionCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [overrideScore, setOverrideScore] = useState<number | null>(null);
@@ -190,7 +193,7 @@ export function QuestionCard({
           score={displayedScore}
           maxMarks={max_marks}
           size="md"
-          editable
+          editable={!readOnly}
           onScoreChange={handleScoreChange}
         />
         <ChevronDown

@@ -8,7 +8,6 @@ if (!uri) {
 }
 
 const DB_NAME = "shikshaksathi";
-const COLLECTION_SESSIONS = "grading_sessions";
 
 // Cache the client across hot reloads in dev to avoid connection storms.
 // A global augmentation must use `var` — `let`/`const` can't extend globalThis.
@@ -41,5 +40,7 @@ export async function getDb(): Promise<Db> {
 }
 
 export const COLLECTIONS = {
-  SESSIONS: COLLECTION_SESSIONS,
+  SESSIONS: "grading_sessions",
+  TEACHERS: "teachers",
+  STUDENTS: "students",
 } as const;

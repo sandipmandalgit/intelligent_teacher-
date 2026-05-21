@@ -4,16 +4,23 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BookOpenCheck,
+  Check,
   Clock,
   Loader2,
+  Pencil,
+  Plus,
   RotateCcw,
   Sparkles,
+  Trash2,
   TriangleAlert,
   Wand2,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { type LessonPlan, type LanguageMeta, languageMeta } from "@/lib/result";
 import { PlayButton } from "./PlayButton";
@@ -22,13 +29,20 @@ interface LessonPlanCardProps {
   subject: string;
   commonMistakes: string[];
   feedbackLanguage: string;
+  /** Pre-load an existing plan (e.g. a teacher-saved plan shown to students). */
+  initialPlan?: LessonPlan | null;
+  /** Teacher mode — allow editing the generated plan. */
+  editable?: boolean;
+  /** Student mode — display only; no generate, no edit. */
+  readOnly?: boolean;
+  /** Reports the current plan to the parent, so it can be saved on finalize. */
+  onPlanChange?: (plan: LessonPlan | null) => void;
 }
 
 type Status = "idle" | "loading" | "loaded" | "error";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-// Staggered entrance for the lesson-plan sections once it arrives.
 const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
@@ -38,9 +52,11 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
 };
 
+const TEXTAREA_CLASS =
+  "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
 /* --------------------------- Small building blocks --------------------- */
 
-/** An emoji-prefixed section heading. */
 function LessonSection({
   emoji,
   title,
@@ -70,7 +86,6 @@ function LessonSection({
   );
 }
 
-/** One oral-quiz question with a tap-to-reveal answer. */
 function QuizItem({
   index,
   question,
@@ -149,7 +164,7 @@ function IdleCta({ onGenerate }: { onGenerate: () => void }) {
       </h3>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
         AI will create a teaching plan based on your class&apos;s most common
-        mistakes
+        mistakes — you can edit every part before saving it.
       </p>
       <Button onClick={onGenerate} size="lg" className="mt-5">
         <Wand2 />
@@ -197,14 +212,22 @@ function ErrorState({
   );
 }
 
+/* --------------------------- Read / view mode -------------------------- */
+
 function PlanView({
   plan,
   lang,
+  readOnly,
+  editable,
   onRegenerate,
+  onEdit,
 }: {
   plan: LessonPlan;
   lang: LanguageMeta;
+  readOnly: boolean;
+  editable: boolean;
   onRegenerate: () => void;
+  onEdit: () => void;
 }) {
   return (
     <motion.div
@@ -341,18 +364,288 @@ function PlanView({
       )}
 
       {/* Footer */}
-      <motion.div variants={itemVariants} className="flex justify-center pt-1">
-        <Button
-          onClick={onRegenerate}
-          variant="ghost"
-          size="sm"
-          className="text-primary hover:text-primary"
+      {readOnly ? (
+        <motion.p
+          variants={itemVariants}
+          className="pt-1 text-center text-xs text-muted-foreground"
         >
-          <RotateCcw />
-          Generate Another Plan
-        </Button>
-      </motion.div>
+          📋 This lesson plan was prepared by your teacher.
+        </motion.p>
+      ) : (
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-wrap items-center justify-center gap-2 pt-1"
+        >
+          {editable && (
+            <Button onClick={onEdit} variant="outline" size="sm">
+              <Pencil />
+              Edit plan
+            </Button>
+          )}
+          <Button
+            onClick={onRegenerate}
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:text-primary"
+          >
+            <RotateCcw />
+            Generate Another Plan
+          </Button>
+        </motion.div>
+      )}
     </motion.div>
+  );
+}
+
+/* ------------------------------ Edit mode ------------------------------ */
+
+function PlanEditor({
+  plan,
+  lang,
+  onSave,
+  onCancel,
+}: {
+  plan: LessonPlan;
+  lang: LanguageMeta;
+  onSave: (plan: LessonPlan) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState<LessonPlan>({
+    ...plan,
+    oral_quiz: plan.oral_quiz ?? [],
+    homework_questions: plan.homework_questions ?? [],
+  });
+
+  function set<K extends keyof LessonPlan>(key: K, value: LessonPlan[K]) {
+    setDraft((d) => {
+      const next = { ...d };
+      next[key] = value;
+      return next;
+    });
+  }
+  function setQuiz(i: number, field: "question" | "answer", value: string) {
+    setDraft((d) => ({
+      ...d,
+      oral_quiz: d.oral_quiz.map((q, idx) =>
+        idx === i ? { ...q, [field]: value } : q,
+      ),
+    }));
+  }
+  function setHw(i: number, value: string) {
+    setDraft((d) => ({
+      ...d,
+      homework_questions: d.homework_questions.map((h, idx) =>
+        idx === i ? value : h,
+      ),
+    }));
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-primary" />
+          <h3 className="text-base font-bold text-foreground">
+            Edit lesson plan
+          </h3>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>
+            <X />
+            Cancel
+          </Button>
+          <Button size="sm" onClick={() => onSave(draft)}>
+            <Check />
+            Save changes
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="lp-topic">Topic</Label>
+        <Input
+          id="lp-topic"
+          value={draft.topic}
+          onChange={(e) => set("topic", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="lp-obj">🎯 Learning objective</Label>
+        <textarea
+          id="lp-obj"
+          rows={2}
+          className={TEXTAREA_CLASS}
+          value={draft.learning_objective}
+          onChange={(e) => set("learning_objective", e.target.value)}
+        />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+        <div className="space-y-1.5">
+          <Label htmlFor="lp-anlabel">Analogy label</Label>
+          <Input
+            id="lp-anlabel"
+            value={draft.bengali_analogy_label}
+            onChange={(e) => set("bengali_analogy_label", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="lp-an">🇮🇳 Analogy</Label>
+          <textarea
+            id="lp-an"
+            rows={3}
+            className={cn(TEXTAREA_CLASS, lang.scriptClass)}
+            value={draft.bengali_analogy}
+            onChange={(e) => set("bengali_analogy", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="lp-board">✏️ Blackboard diagram (ASCII)</Label>
+        <textarea
+          id="lp-board"
+          rows={7}
+          className={cn(TEXTAREA_CLASS, "font-mono text-xs")}
+          value={draft.blackboard_diagram}
+          onChange={(e) => set("blackboard_diagram", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="lp-key">📖 Key explanation</Label>
+        <textarea
+          id="lp-key"
+          rows={3}
+          className={cn(TEXTAREA_CLASS, lang.scriptClass)}
+          value={draft.key_explanation}
+          onChange={(e) => set("key_explanation", e.target.value)}
+        />
+      </div>
+
+      {/* Oral quiz */}
+      <div className="space-y-2">
+        <Label>❓ Oral quiz</Label>
+        <div className="space-y-3">
+          {draft.oral_quiz.map((q, i) => (
+            <div key={i} className="rounded-lg border border-border/70 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground">
+                  Question {i + 1}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Remove question"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      oral_quiz: d.oral_quiz.filter((_, idx) => idx !== i),
+                    }))
+                  }
+                  className="text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <Input
+                className="mt-1.5"
+                placeholder="Question"
+                value={q.question}
+                onChange={(e) => setQuiz(i, "question", e.target.value)}
+              />
+              <Input
+                className="mt-1.5"
+                placeholder="Answer"
+                value={q.answer}
+                onChange={(e) => setQuiz(i, "answer", e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setDraft((d) => ({
+              ...d,
+              oral_quiz: [...d.oral_quiz, { question: "", answer: "" }],
+            }))
+          }
+        >
+          <Plus />
+          Add question
+        </Button>
+      </div>
+
+      {/* Homework */}
+      <div className="space-y-2">
+        <Label>📝 Homework questions</Label>
+        <div className="space-y-2">
+          {draft.homework_questions.map((h, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input
+                value={h}
+                placeholder={`Homework ${i + 1}`}
+                onChange={(e) => setHw(i, e.target.value)}
+              />
+              <button
+                type="button"
+                aria-label="Remove homework"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    homework_questions: d.homework_questions.filter(
+                      (_, idx) => idx !== i,
+                    ),
+                  }))
+                }
+                className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setDraft((d) => ({
+              ...d,
+              homework_questions: [...d.homework_questions, ""],
+            }))
+          }
+        >
+          <Plus />
+          Add homework
+        </Button>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="lp-notes">👩‍🏫 Teaching notes</Label>
+        <textarea
+          id="lp-notes"
+          rows={2}
+          className={cn(TEXTAREA_CLASS, lang.scriptClass)}
+          value={draft.teaching_notes}
+          onChange={(e) => set("teaching_notes", e.target.value)}
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 border-t border-border/60 pt-4">
+        <Button variant="outline" onClick={onCancel}>
+          <X />
+          Cancel
+        </Button>
+        <Button onClick={() => onSave(draft)}>
+          <Check />
+          Save changes
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -360,22 +653,31 @@ function PlanView({
 
 /**
  * Turns a class's common mistakes into a ready-to-teach 5-minute lesson
- * plan via the /api/lesson-plan AI agent.
+ * plan. Teachers can generate, edit, and (on the result page) save it to
+ * the student record. Students see the saved plan read-only.
  */
 export function LessonPlanCard({
   subject,
   commonMistakes,
   feedbackLanguage,
+  initialPlan = null,
+  editable = false,
+  readOnly = false,
+  onPlanChange,
 }: LessonPlanCardProps) {
-  const [status, setStatus] = useState<Status>("idle");
-  const [plan, setPlan] = useState<LessonPlan | null>(null);
+  const [status, setStatus] = useState<Status>(
+    initialPlan ? "loaded" : "idle",
+  );
+  const [plan, setPlan] = useState<LessonPlan | null>(initialPlan);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
 
   const lang = languageMeta(feedbackLanguage);
 
   async function generate() {
     setStatus("loading");
     setError("");
+    setEditing(false);
     try {
       const res = await fetch("/api/lesson-plan", {
         method: "POST",
@@ -407,8 +709,10 @@ export function LessonPlanCard({
         return;
       }
 
-      setPlan(payload as LessonPlan);
+      const newPlan = payload as LessonPlan;
+      setPlan(newPlan);
       setStatus("loaded");
+      onPlanChange?.(newPlan);
     } catch {
       setError(
         "Network error — please check your connection and try again.",
@@ -417,20 +721,47 @@ export function LessonPlanCard({
     }
   }
 
+  function handleSaveEdit(edited: LessonPlan) {
+    setPlan(edited);
+    setEditing(false);
+    onPlanChange?.(edited);
+  }
+
+  // Student view with nothing saved — render nothing.
+  if (readOnly && !plan) return null;
+
   return (
     <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
       {/* Deep-teal-to-accent gradient header strip */}
       <div className="h-2 w-full bg-gradient-to-r from-primary via-primary to-accent" />
 
       <div className="p-6 sm:p-7">
-        {status === "idle" && <IdleCta onGenerate={generate} />}
+        {status === "idle" && !readOnly && (
+          <IdleCta onGenerate={generate} />
+        )}
         {status === "loading" && <LoadingState />}
-        {status === "error" && (
+        {status === "error" && !readOnly && (
           <ErrorState message={error} onRetry={generate} />
         )}
-        {status === "loaded" && plan && (
-          <PlanView plan={plan} lang={lang} onRegenerate={generate} />
-        )}
+        {status === "loaded" &&
+          plan &&
+          (editing ? (
+            <PlanEditor
+              plan={plan}
+              lang={lang}
+              onSave={handleSaveEdit}
+              onCancel={() => setEditing(false)}
+            />
+          ) : (
+            <PlanView
+              plan={plan}
+              lang={lang}
+              readOnly={readOnly}
+              editable={editable}
+              onRegenerate={generate}
+              onEdit={() => setEditing(true)}
+            />
+          ))}
       </div>
     </Card>
   );
