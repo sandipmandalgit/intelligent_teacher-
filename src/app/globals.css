@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ShikshakSathi warm theme — light only */
+
+    /* Surfaces */
+    --background: 43 100% 95%; /* cream  #FFF8E7 */
+    --foreground: 0 0% 10%; /* dark   #1A1A1A */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    /* Brand */
+    --primary: 193 72% 21%; /* deep teal    #0F4C5C */
+    --primary-foreground: 43 100% 97%;
+    --accent: 27 87% 67%; /* warm orange  #F4A261 */
+    --accent-foreground: 20 35% 14%;
+    --success: 173 58% 39%; /* green        #2A9D8F */
+    --success-foreground: 0 0% 100%;
+
+    /* Neutrals */
+    --secondary: 42 48% 90%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 42 45% 91%;
+    --muted-foreground: 28 12% 40%;
+
+    /* Feedback */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Lines & focus */
+    --border: 40 38% 85%;
+    --input: 40 38% 85%;
+    --ring: 193 72% 25%;
+
+    /* Charts (used by the dashboard later) */
+    --chart-1: 193 72% 25%;
+    --chart-2: 27 87% 67%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 42 88% 58%;
+    --chart-5: 15 63% 56%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  /* Apply to any element containing Bengali script */
+  .font-bengali {
+    font-family: var(--font-bengali), system-ui, sans-serif;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
