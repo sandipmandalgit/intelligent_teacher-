@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { MotionConfig } from "framer-motion";
 import "./globals.css";
+import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 // Inter — English UI text
@@ -35,7 +37,12 @@ export default function RootLayout({
       className={`${inter.variable} ${notoSansBengali.variable}`}
     >
       <body className="font-sans antialiased">
-        {children}
+        {/* reducedMotion="user" makes every framer-motion animation respect
+            the OS "reduce motion" accessibility setting. */}
+        <MotionConfig reducedMotion="user">
+          <Navbar />
+          {children}
+        </MotionConfig>
         <Toaster />
       </body>
     </html>
