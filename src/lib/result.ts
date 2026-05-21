@@ -119,3 +119,68 @@ export function languageMeta(language: string): LanguageMeta {
     voiceName: "English",
   };
 }
+
+/* ------------------------------ Lesson plan ---------------------------- */
+
+export interface LessonPlan {
+  topic: string;
+  subject: string;
+  duration_minutes: number;
+  learning_objective: string;
+  bengali_analogy: string; // a simple culturally-grounded analogy
+  bengali_analogy_label: string; // e.g. "অভিনব রূপক" / "Analogy"
+  blackboard_diagram: string; // monospace ASCII diagram
+  key_explanation: string; // 2-3 sentence concept explanation in feedback_language
+  oral_quiz: { question: string; answer: string }[];
+  homework_questions: string[];
+  teaching_notes: string; // any extra notes for the teacher in feedback_language
+  feedback_language: string;
+}
+
+/* ---------------------------- Score overrides -------------------------- */
+
+const STORAGE_KEY = "shikshaksathi:lastResult";
+
+/**
+ * Persists a teacher's score override for one question back to localStorage
+ * and recomputes the summary total (and percentage) so a page refresh
+ * reflects the change. Browser-only; failures — private mode, malformed
+ * data — are swallowed silently.
+ */
+export function persistScoreOverride(
+  questionNumber: number,
+  newScore: number,
+): void {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+
+    const data = JSON.parse(raw) as GradingResult;
+    const questions = data.graded_questions;
+    if (!Array.isArray(questions)) return;
+
+    const target = questions.find(
+      (q) => q.question_number === questionNumber,
+    );
+    if (!target) return;
+    target.score = newScore;
+
+    // Recompute the class total from every current score.
+    const total = questions.reduce(
+      (sum, q) => sum + (typeof q.score === "number" ? q.score : 0),
+      0,
+    );
+    if (data.student_summary) {
+      data.student_summary.total_score = total;
+      const max = data.student_summary.total_max_marks;
+      if (typeof max === "number" && max > 0) {
+        data.student_summary.percentage =
+          Math.round((total / max) * 1000) / 10;
+      }
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage unavailable or data malformed — non-fatal.
+  }
+}

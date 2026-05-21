@@ -19,7 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { type GradedQuestion, languageMeta, scoreTone } from "@/lib/result";
+import {
+  type GradedQuestion,
+  languageMeta,
+  persistScoreOverride,
+  scoreTone,
+} from "@/lib/result";
 import { ScoreRing } from "./ScoreRing";
 import { RubricRow } from "./RubricRow";
 import { PlayButton } from "./PlayButton";
@@ -28,6 +33,8 @@ interface QuestionCardProps {
   question: GradedQuestion;
   /** Whether the card starts expanded (used for the first question). */
   defaultExpanded?: boolean;
+  /** Called the first time a teacher overrides this question's score. */
+  onEdit?: () => void;
 }
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -64,13 +71,17 @@ function SectionTitle({
 /**
  * An expandable card for a single graded question. The header (number,
  * question text, score ring) is always visible; clicking it reveals the
- * full breakdown. Unattempted questions render as a flat, muted row.
+ * full breakdown. The score ring is tappable — teachers can override the
+ * AI's score, which is persisted to localStorage. Unattempted questions
+ * render as a flat, muted row.
  */
 export function QuestionCard({
   question,
   defaultExpanded = false,
+  onEdit,
 }: QuestionCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [overrideScore, setOverrideScore] = useState<number | null>(null);
 
   const {
     question_number,
@@ -114,7 +125,11 @@ export function QuestionCard({
     );
   }
 
-  const tone = scoreTone(max_marks > 0 ? (score / max_marks) * 100 : 0);
+  const isOverridden = overrideScore !== null;
+  const displayedScore = overrideScore ?? score;
+  const tone = scoreTone(
+    max_marks > 0 ? (displayedScore / max_marks) * 100 : 0,
+  );
   const lang = languageMeta(feedback_language);
   const pagesLabel =
     source_pages.length === 0
@@ -123,14 +138,27 @@ export function QuestionCard({
         ? `Page ${source_pages[0]}`
         : `Spans pages ${source_pages.join(", ")}`;
 
+  function handleScoreChange(newScore: number) {
+    setOverrideScore(newScore);
+    persistScoreOverride(question_number, newScore);
+    onEdit?.();
+  }
+
   return (
     <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm transition-shadow hover:shadow-md">
       {/* Header — always visible, toggles the body */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
+      <div
+        role="button"
+        tabIndex={0}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-secondary/40 sm:gap-4 sm:p-5"
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((v) => !v);
+          }
+        }}
+        className="flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:bg-secondary/40 sm:gap-4 sm:p-5"
       >
         <span
           className={cn(
@@ -141,14 +169,30 @@ export function QuestionCard({
           Q{question_number}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted-foreground">
-            Question {question_number} · {max_marks} marks
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Question {question_number} · {max_marks} marks
+            </span>
+            {isOverridden && (
+              <Badge
+                variant="outline"
+                className="h-5 border-accent px-1.5 text-[0.625rem] text-accent"
+              >
+                Teacher edited
+              </Badge>
+            )}
+          </div>
           <p className="line-clamp-1 text-sm font-semibold text-foreground sm:text-base md:line-clamp-2">
             {question_text}
           </p>
         </div>
-        <ScoreRing score={score} maxMarks={max_marks} size="md" />
+        <ScoreRing
+          score={displayedScore}
+          maxMarks={max_marks}
+          size="md"
+          editable
+          onScoreChange={handleScoreChange}
+        />
         <ChevronDown
           className={cn(
             "h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300",
@@ -156,7 +200,7 @@ export function QuestionCard({
           )}
           aria-hidden
         />
-      </button>
+      </div>
 
       {/* Body — animated height reveal */}
       <AnimatePresence initial={false}>

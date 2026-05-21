@@ -54,6 +54,38 @@ export function getProModel(): GenerativeModel {
 }
 
 /**
+ * Returns a Gemini Flash model optimised for lesson-plan generation.
+ * Uses a smaller maxOutputTokens since lesson plans are short and
+ * we want the response back fast.
+ */
+export function getLessonPlanModel(): GenerativeModel {
+  return genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.5, // slightly higher — we want some creative analogy variation
+      maxOutputTokens: 8192,
+    },
+  });
+}
+
+/**
+ * Returns a lesson-plan model for a specific model id. Used by the
+ * /api/lesson-plan route to fall back to older Flash models when the
+ * primary model is overloaded (503) or rate-limited (429).
+ */
+export function getLessonPlanModelById(modelId: string): GenerativeModel {
+  return genAI.getGenerativeModel({
+    model: modelId,
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.5,
+      maxOutputTokens: 8192,
+    },
+  });
+}
+
+/**
  * Converts an uploaded file buffer into a Gemini inline-data part
  * (base64-encoded), preserving the original mime type.
  */

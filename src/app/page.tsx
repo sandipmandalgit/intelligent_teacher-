@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { FileDropzone } from "@/components/upload/FileDropzone";
 import { GradingProgress } from "@/components/upload/GradingProgress";
 import { LanguageSelector } from "@/components/upload/LanguageSelector";
+import { TrainingArchiveStats } from "@/components/TrainingArchiveStats";
 
 type Language = "bengali" | "hindi" | "english";
 
@@ -113,6 +114,31 @@ export default function Home() {
         return;
       }
 
+      // Fire-and-forget: contribute this session to the open handwriting
+      // archive. Never awaited — archive failures must not affect grading
+      // or the redirect to the result page.
+      try {
+        const archiveData = new FormData();
+        archiveData.append("grading_result", JSON.stringify(payload));
+        studentPages.forEach((page) =>
+          archiveData.append("student_pages", page),
+        );
+        archiveData.append("answer_script", answerScript);
+        fetch("/api/archive", { method: "POST", body: archiveData })
+          .then((archiveRes) => {
+            if (archiveRes.ok) {
+              toast.success(
+                "✓ Contributed to ShikshakSathi's open handwriting archive",
+              );
+            }
+          })
+          .catch((archiveErr) => {
+            console.warn("[archive] background archive failed:", archiveErr);
+          });
+      } catch (archiveErr) {
+        console.warn("[archive] could not start archive request:", archiveErr);
+      }
+
       // Persist for the result page and the (future) dashboard.
       try {
         localStorage.setItem(
@@ -210,6 +236,16 @@ export default function Home() {
             </div>
           </div>
         </motion.section>
+
+        {/* Training-archive "data flywheel" counter */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35, ease: EASE }}
+          className="mb-6"
+        >
+          <TrainingArchiveStats />
+        </motion.div>
 
         {/* Try sample exam */}
         <motion.div

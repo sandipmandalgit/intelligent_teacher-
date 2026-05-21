@@ -3,7 +3,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, FileQuestion, Loader2, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  FileQuestion,
+  Loader2,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +18,7 @@ import { type GradingResult } from "@/lib/result";
 import { SummaryHero } from "@/components/result/SummaryHero";
 import { QuestionCard } from "@/components/result/QuestionCard";
 import { CommonMistakes } from "@/components/result/CommonMistakes";
+import { LessonPlanCard } from "@/components/result/LessonPlanCard";
 
 const STORAGE_KEY = "shikshaksathi:lastResult";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -55,6 +63,7 @@ function Reveal({
 export default function ResultPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [result, setResult] = useState<GradingResult | null>(null);
+  const [hasEdits, setHasEdits] = useState(false);
 
   useEffect(() => {
     try {
@@ -115,21 +124,53 @@ export default function ResultPage() {
   // --- Ready: the full result -------------------------------------------
   const { answer_script, student_summary, graded_questions, common_mistakes } =
     result;
+  const hasCommonMistakes =
+    Array.isArray(common_mistakes) && common_mistakes.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:py-12">
-      {/* Action row */}
-      <Reveal delay={0} className="flex items-center justify-between gap-3">
-        <Button
-          asChild
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground"
+      {/* Edited-scores banner — appears after the first override */}
+      {hasEdits && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3"
         >
-          <Link href="/">
-            <ArrowLeft />
-            Back to Grade
-          </Link>
-        </Button>
+          <p className="text-sm font-medium text-foreground">
+            Some scores have been edited. Refresh to update the summary.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.location.reload()}
+          >
+            <RotateCcw />
+            Refresh
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Action row */}
+      <Reveal
+        delay={0}
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Link href="/">
+              <ArrowLeft />
+              Back to Grade
+            </Link>
+          </Button>
+          <Badge variant="secondary" className="gap-1">
+            ✋ Tap any score to override
+          </Badge>
+        </div>
         <Button asChild>
           <Link href="/">
             <Plus />
@@ -162,15 +203,32 @@ export default function ResultPage() {
       <div className="space-y-4">
         {graded_questions.map((question, i) => (
           <Reveal key={question.question_number ?? i} delay={0.3 + i * 0.06}>
-            <QuestionCard question={question} defaultExpanded={i === 0} />
+            <QuestionCard
+              question={question}
+              defaultExpanded={i === 0}
+              onEdit={() => setHasEdits(true)}
+            />
           </Reveal>
         ))}
       </div>
 
       {/* Class-level insights */}
-      {common_mistakes && common_mistakes.length > 0 && (
+      {hasCommonMistakes && (
         <Reveal delay={0.4}>
           <CommonMistakes mistakes={common_mistakes} />
+        </Reveal>
+      )}
+
+      {/* AI lesson plan generator */}
+      {hasCommonMistakes && (
+        <Reveal delay={0.45}>
+          <LessonPlanCard
+            subject={answer_script.subject}
+            commonMistakes={common_mistakes}
+            feedbackLanguage={
+              graded_questions[0]?.feedback_language ?? "english"
+            }
+          />
         </Reveal>
       )}
 
