@@ -8,6 +8,8 @@ import {
   ChevronDown,
   CircleSlash,
   ClipboardCheck,
+  Eye,
+  EyeOff,
   type LucideIcon,
   MessageSquare,
   MinusCircle,
@@ -27,7 +29,6 @@ import {
 } from "@/lib/result";
 import { ScoreRing } from "./ScoreRing";
 import { RubricRow } from "./RubricRow";
-import { PlayButton } from "./PlayButton";
 
 interface QuestionCardProps {
   question: GradedQuestion;
@@ -100,6 +101,7 @@ export function QuestionCard({
     feedback_translated,
     feedback_language,
     source_pages,
+    readability_confidence,
   } = question;
 
   // --- Unattempted: a flat, non-expandable row ---------------------------
@@ -196,6 +198,22 @@ export function QuestionCard({
           editable={!readOnly}
           onScoreChange={handleScoreChange}
         />
+        {readability_confidence === "MEDIUM" && (
+          <span
+            className="mr-1 inline-flex shrink-0"
+            title="This page was somewhat hard to read"
+          >
+            <Eye className="h-4 w-4 text-amber-500" aria-hidden />
+          </span>
+        )}
+        {readability_confidence === "LOW" && (
+          <span
+            className="mr-1 inline-flex shrink-0"
+            title="This page was very hard to read — verify the score carefully"
+          >
+            <EyeOff className="h-4 w-4 text-destructive" aria-hidden />
+          </span>
+        )}
         <ChevronDown
           className={cn(
             "h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300",
@@ -318,36 +336,22 @@ export function QuestionCard({
                 <SectionTitle icon={MessageSquare}>Feedback</SectionTitle>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <h5 className="text-sm font-bold text-foreground">
-                        In English
-                      </h5>
-                      <PlayButton
-                        text={feedback_english}
-                        lang="en-IN"
-                        voiceName="English"
-                      />
-                    </div>
+                    <h5 className="mb-2 text-sm font-bold text-foreground">
+                      In English
+                    </h5>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {feedback_english}
                     </p>
                   </div>
                   <div className="rounded-xl border border-primary/15 bg-primary/[0.06] p-4">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <h5
-                        className={cn(
-                          "text-sm font-bold text-foreground",
-                          lang.scriptClass,
-                        )}
-                      >
-                        {lang.label}
-                      </h5>
-                      <PlayButton
-                        text={feedback_translated}
-                        lang={lang.ttsLang}
-                        voiceName={lang.voiceName}
-                      />
-                    </div>
+                    <h5
+                      className={cn(
+                        "mb-2 text-sm font-bold text-foreground",
+                        lang.scriptClass,
+                      )}
+                    >
+                      {lang.label}
+                    </h5>
                     <p
                       className={cn(
                         "text-sm leading-relaxed text-muted-foreground",

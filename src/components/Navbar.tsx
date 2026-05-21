@@ -13,28 +13,6 @@ interface AuthState {
 
 /* ----------------------------- Sub-components -------------------------- */
 
-function NavLink({
-  href,
-  label,
-  className,
-}: {
-  href: string;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
-        className,
-      )}
-    >
-      {label}
-    </Link>
-  );
-}
-
 function MenuLink({
   href,
   onClick,
@@ -189,88 +167,85 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <NavLink href="/" label="Grade" />
-          <NavLink
-            href="/dashboard"
-            label="Dashboard"
-            className="hidden sm:inline-block"
-          />
+          {/* Teacher menu — hidden when signed in as a student. */}
+          {auth.role !== "student" && (
+            <NavMenu
+              trigger={
+                auth.role === "teacher" ? `👩‍🏫 ${auth.label}` : "Teacher"
+              }
+              open={openMenu === "teacher"}
+              onToggle={() =>
+                setOpenMenu((m) => (m === "teacher" ? null : "teacher"))
+              }
+              onClose={() => setOpenMenu(null)}
+            >
+              {auth.role === "teacher" ? (
+                <>
+                  <MenuLink
+                    href="/teacher/dashboard"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    My Dashboard
+                  </MenuLink>
+                  <MenuButton onClick={handleLogout}>
+                    <LogOut className="h-3.5 w-3.5" />
+                    Log out
+                  </MenuButton>
+                </>
+              ) : (
+                <>
+                  <MenuLink
+                    href="/teacher/login"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Log in
+                  </MenuLink>
+                  <MenuLink
+                    href="/teacher/signup"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Sign up
+                  </MenuLink>
+                </>
+              )}
+            </NavMenu>
+          )}
 
-          {/* Teacher menu */}
-          <NavMenu
-            trigger={
-              auth.role === "teacher" ? `👩‍🏫 ${auth.label}` : "Teacher"
-            }
-            open={openMenu === "teacher"}
-            onToggle={() =>
-              setOpenMenu((m) => (m === "teacher" ? null : "teacher"))
-            }
-            onClose={() => setOpenMenu(null)}
-          >
-            {auth.role === "teacher" ? (
-              <>
+          {/* Student menu — hidden when signed in as a teacher. */}
+          {auth.role !== "teacher" && (
+            <NavMenu
+              trigger={
+                auth.role === "student" ? `🎒 ${auth.label}` : "Student"
+              }
+              open={openMenu === "student"}
+              onToggle={() =>
+                setOpenMenu((m) => (m === "student" ? null : "student"))
+              }
+              onClose={() => setOpenMenu(null)}
+            >
+              {auth.role === "student" ? (
+                <>
+                  <MenuLink
+                    href="/student/dashboard"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    My Dashboard
+                  </MenuLink>
+                  <MenuButton onClick={handleLogout}>
+                    <LogOut className="h-3.5 w-3.5" />
+                    Log out
+                  </MenuButton>
+                </>
+              ) : (
                 <MenuLink
-                  href="/teacher/dashboard"
-                  onClick={() => setOpenMenu(null)}
-                >
-                  My Dashboard
-                </MenuLink>
-                <MenuButton onClick={handleLogout}>
-                  <LogOut className="h-3.5 w-3.5" />
-                  Log out
-                </MenuButton>
-              </>
-            ) : (
-              <>
-                <MenuLink
-                  href="/teacher/login"
+                  href="/student/login"
                   onClick={() => setOpenMenu(null)}
                 >
                   Log in
                 </MenuLink>
-                <MenuLink
-                  href="/teacher/signup"
-                  onClick={() => setOpenMenu(null)}
-                >
-                  Sign up
-                </MenuLink>
-              </>
-            )}
-          </NavMenu>
-
-          {/* Student menu */}
-          <NavMenu
-            trigger={
-              auth.role === "student" ? `🎒 ${auth.label}` : "Student"
-            }
-            open={openMenu === "student"}
-            onToggle={() =>
-              setOpenMenu((m) => (m === "student" ? null : "student"))
-            }
-            onClose={() => setOpenMenu(null)}
-          >
-            {auth.role === "student" ? (
-              <>
-                <MenuLink
-                  href="/student/dashboard"
-                  onClick={() => setOpenMenu(null)}
-                >
-                  My Dashboard
-                </MenuLink>
-                <MenuButton onClick={handleLogout}>
-                  <LogOut className="h-3.5 w-3.5" />
-                  Log out
-                </MenuButton>
-              </>
-            ) : (
-              <MenuLink
-                href="/student/login"
-                onClick={() => setOpenMenu(null)}
-              >
-                Log in
-              </MenuLink>
-            )}
-          </NavMenu>
+              )}
+            </NavMenu>
+          )}
         </div>
       </nav>
     </header>

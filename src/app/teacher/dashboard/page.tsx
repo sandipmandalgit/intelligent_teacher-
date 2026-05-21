@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   Plus,
+  Sparkles,
   TrendingUp,
   UserPlus,
   Users,
@@ -29,6 +30,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { RecentSessionsTable } from "@/components/dashboard/RecentSessionsTable";
+import {
+  SubjectPerformanceCard,
+  type SubjectPerformance,
+} from "@/components/teacher/SubjectPerformanceCard";
+import { type QuestionDifficulty } from "@/components/teacher/QuestionDifficultyPanel";
 
 interface TeacherProfile {
   id: string;
@@ -53,6 +59,13 @@ interface TeacherSession {
   roll_number: string | null;
   finalized: boolean;
 }
+interface TeacherAnalytics {
+  total_sessions: number;
+  total_students_graded: number;
+  overall_avg_percentage: number;
+  subject_performance: SubjectPerformance[];
+  question_difficulty: QuestionDifficulty[];
+}
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -62,6 +75,8 @@ export default function TeacherDashboardPage() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [sessions, setSessions] = useState<TeacherSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<TeacherAnalytics | null>(null);
+  const [analyticsError, setAnalyticsError] = useState(false);
 
   // Add-student modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -103,6 +118,29 @@ export default function TeacherDashboardPage() {
         if (!cancelled && sessionsRes.ok) {
           const d = await sessionsRes.json().catch(() => null);
           if (d?.ok) setSessions(d.sessions ?? []);
+        }
+
+        // Analytics — isolated so a failure can't break the rest of the page.
+        try {
+          const analyticsRes = await fetch("/api/teacher/analytics");
+          if (!cancelled) {
+            if (analyticsRes.status === 401) {
+              router.replace("/teacher/login");
+              return;
+            }
+            if (analyticsRes.ok) {
+              const d = await analyticsRes.json().catch(() => null);
+              if (d && typeof d === "object" && "subject_performance" in d) {
+                setAnalytics(d as TeacherAnalytics);
+              } else {
+                setAnalyticsError(true);
+              }
+            } else {
+              setAnalyticsError(true);
+            }
+          }
+        } catch {
+          if (!cancelled) setAnalyticsError(true);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -193,10 +231,18 @@ export default function TeacherDashboardPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut />
-          Log out
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild>
+            <Link href="/grade">
+              <Sparkles />
+              Grade a sheet
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut />
+            Log out
+          </Button>
+        </div>
       </motion.div>
 
       {/* Stat cards */}
@@ -234,6 +280,59 @@ export default function TeacherDashboardPage() {
           sublabel="Sessions in last 7 days"
           tone="neutral"
         />
+      </motion.div>
+
+      {/* Subject Performance Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
+      >
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-foreground">
+            📚 Subject Performance Overview
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Per-subject performance across all your finalized grading sessions
+          </p>
+        </div>
+        {analyticsError ? (
+          <Card className="rounded-2xl border-border/70 p-5 text-sm text-muted-foreground shadow-sm">
+            Analytics temporarily unavailable.
+          </Card>
+        ) : !analytics || analytics.subject_performance.length === 0 ? (
+          <Card className="rounded-2xl border-dashed border-border bg-secondary/40 p-8 text-center shadow-none">
+            <p className="text-sm font-medium text-foreground">
+              No subject analytics yet
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Grade your first exam and submit it to see subject analytics
+              here.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {analytics.subject_performance.map((s, i) => (
+              <motion.div
+                key={s.subject}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: 0.2 + i * 0.05,
+                  ease: EASE,
+                }}
+              >
+                <SubjectPerformanceCard
+                  {...s}
+                  questions={analytics.question_difficulty.filter(
+                    (q) => q.subject === s.subject,
+                  )}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </motion.div>
 
       {/* My Students */}

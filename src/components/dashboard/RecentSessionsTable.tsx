@@ -72,7 +72,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
             No sessions yet — grade your first paper to see it here
           </p>
           <Button asChild size="sm" className="mt-3">
-            <Link href="/">Grade a paper</Link>
+            <Link href="/grade">Grade a paper</Link>
           </Button>
         </div>
       ) : (

@@ -4,44 +4,48 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import {
-  FileText,
+  BarChart3,
+  BookOpenCheck,
+  Check,
   GraduationCap,
-  LogIn,
-  ScrollText,
+  Languages,
+  Loader2,
   Sparkles,
-  Wand2,
+  Zap,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { FileDropzone } from "@/components/upload/FileDropzone";
-import { GradingProgress } from "@/components/upload/GradingProgress";
-import { LanguageSelector } from "@/components/upload/LanguageSelector";
-import { TrainingArchiveStats } from "@/components/TrainingArchiveStats";
 
-type Language = "bengali" | "hindi" | "english";
-
-interface TeacherInfo {
-  id: string;
-  name: string;
-}
-interface StudentLite {
-  roll_number: string;
-  name: string;
-}
-
-const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-const TRUST_BADGES = [
-  { emoji: "🔒", text: "Your files never leave Google's secure servers" },
-  { emoji: "⚡", text: "Sub-30-second grading" },
-  { emoji: "🇮🇳", text: "Built for Indian classrooms" },
+const TEACHER_POINTS = [
+  "Grade a full answer sheet in ~20 seconds",
+  "Rubric-based scores you can edit before sharing",
+  "Class analytics and question-difficulty insights",
+];
+
+const FEATURES = [
+  {
+    icon: Zap,
+    title: "20-second grading",
+    text: "Upload an answer sheet and get rubric-graded scores in moments.",
+  },
+  {
+    icon: Languages,
+    title: "Bilingual feedback",
+    text: "Clear feedback in Bengali, Hindi, or English — with audio playback.",
+  },
+  {
+    icon: BarChart3,
+    title: "Class analytics",
+    text: "See subject performance and the questions students struggle with.",
+  },
+  {
+    icon: BookOpenCheck,
+    title: "Student portal",
+    text: "Students log in to see their grades, feedback, and lesson plans.",
+  },
 ];
 
 /** Decorative SVG — stacked answer sheets with a checkmark badge. */
@@ -92,447 +96,230 @@ function ExamGraphic() {
   );
 }
 
-export default function Home() {
+export default function LandingPage() {
   const router = useRouter();
-  const [answerScript, setAnswerScript] = useState<File | null>(null);
-  const [studentPages, setStudentPages] = useState<File[]>([]);
-  const [language, setLanguage] = useState<Language>("bengali");
-  const [isGrading, setIsGrading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  // Optional platform linkage (Step 9).
-  const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
-  const [students, setStudents] = useState<StudentLite[]>([]);
-  const [rollNumber, setRollNumber] = useState("");
-  const [subjectOverride, setSubjectOverride] = useState("");
-
-  const canGrade = answerScript !== null && studentPages.length > 0;
-
-  // Detect a logged-in teacher so grades can be linked to their students.
+  // Signed-in visitors go straight to their workspace.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/teacher/me");
-        if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        if (cancelled || !data?.ok) return;
-        setTeacher({ id: data.teacher.id, name: data.teacher.name });
-        const sRes = await fetch("/api/teacher/students");
+        const tRes = await fetch("/api/teacher/me");
+        if (tRes.ok) {
+          const d = await tRes.json().catch(() => null);
+          if (d?.ok) {
+            if (!cancelled) router.replace("/teacher/dashboard");
+            return;
+          }
+        }
+        const sRes = await fetch("/api/student/me");
         if (sRes.ok) {
-          const sData = await sRes.json().catch(() => null);
-          if (!cancelled && sData?.ok) setStudents(sData.students ?? []);
+          const d = await sRes.json().catch(() => null);
+          if (d?.ok) {
+            if (!cancelled) router.replace("/student/dashboard");
+            return;
+          }
         }
       } catch {
-        // Not logged in / offline — anonymous grading still works.
+        // Not signed in — show the landing page.
       }
+      if (!cancelled) setChecking(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
-  async function handleLogout() {
-    await fetch("/api/teacher/logout", { method: "POST" }).catch(() => {});
-    setTeacher(null);
-    setStudents([]);
-    toast.success("Logged out.");
-  }
-
-  async function handleGrade() {
-    if (!answerScript || studentPages.length === 0) return;
-    setIsGrading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("answer_script", answerScript);
-      studentPages.forEach((page) => formData.append("student_pages", page));
-      formData.append("feedback_language", language);
-
-      const res = await fetch("/api/grade", { method: "POST", body: formData });
-
-      let payload: unknown = null;
-      try {
-        payload = await res.json();
-      } catch {
-        payload = null;
-      }
-
-      if (!res.ok) {
-        const message =
-          payload &&
-          typeof payload === "object" &&
-          "error" in payload &&
-          typeof (payload as { error: unknown }).error === "string"
-            ? (payload as { error: string }).error
-            : "Grading failed — please try again.";
-        setIsGrading(false);
-        toast.error(message);
-        return;
-      }
-
-      // Meta the Result page reads to offer the "Submit Final Grade" action.
-      const sessionMeta: {
-        roll_number: string | null;
-        subject_override: string | null;
-        session_id: string | null;
-      } = {
-        roll_number: rollNumber.trim() || null,
-        subject_override: subjectOverride.trim() || null,
-        session_id: null,
-      };
-
-      // Archive the session. When a roll number is set we await the archive
-      // so we can capture its session_id (needed to finalize the grade).
-      // Anonymous grading stays fire-and-forget and never blocks the redirect.
-      try {
-        const archiveData = new FormData();
-        archiveData.append("grading_result", JSON.stringify(payload));
-        studentPages.forEach((page) =>
-          archiveData.append("student_pages", page),
-        );
-        archiveData.append("answer_script", answerScript);
-        if (sessionMeta.roll_number)
-          archiveData.append("roll_number", sessionMeta.roll_number);
-        if (sessionMeta.subject_override)
-          archiveData.append("subject_override", sessionMeta.subject_override);
-        if (teacher?.id) archiveData.append("teacher_id", teacher.id);
-
-        if (sessionMeta.roll_number) {
-          const archiveRes = await fetch("/api/archive", {
-            method: "POST",
-            body: archiveData,
-          });
-          const archiveJson = await archiveRes.json().catch(() => null);
-          if (archiveRes.ok && archiveJson?.session_id) {
-            sessionMeta.session_id = String(archiveJson.session_id);
-            toast.success(
-              "✓ Saved to the archive — submit on the next page to finalize",
-            );
-          }
-        } else {
-          fetch("/api/archive", { method: "POST", body: archiveData })
-            .then((archiveRes) => {
-              if (archiveRes.ok) {
-                toast.success(
-                  "✓ Contributed to ShikshakSathi's open handwriting archive",
-                );
-              }
-            })
-            .catch((archiveErr) => {
-              console.warn(
-                "[archive] background archive failed:",
-                archiveErr,
-              );
-            });
-        }
-      } catch (archiveErr) {
-        console.warn("[archive] archive request failed:", archiveErr);
-      }
-
-      // Persist for the result page and the dashboard.
-      try {
-        localStorage.setItem(
-          "shikshaksathi:lastResult",
-          JSON.stringify(payload),
-        );
-        localStorage.setItem(
-          "shikshaksathi:lastSessionMeta",
-          JSON.stringify(sessionMeta),
-        );
-        const existingRaw = localStorage.getItem("shikshaksathi:allResults");
-        let allResults: unknown[] = [];
-        if (existingRaw) {
-          const parsed = JSON.parse(existingRaw);
-          if (Array.isArray(parsed)) allResults = parsed;
-        }
-        allResults.push(payload);
-        localStorage.setItem(
-          "shikshaksathi:allResults",
-          JSON.stringify(allResults),
-        );
-      } catch {
-        // localStorage can be unavailable (e.g. private mode) — non-fatal.
-      }
-
-      router.push("/result");
-    } catch {
-      setIsGrading(false);
-      toast.error("Grading failed — please try again.");
-    }
-  }
-
-  async function loadSample() {
-    try {
-      const [scriptRes, page1Res, page2Res] = await Promise.all([
-        fetch("/samples/sample_answer_script.pdf"),
-        fetch("/samples/student1_page1.jpeg"),
-        fetch("/samples/student1_page2.jpeg"),
-      ]);
-
-      if (!scriptRes.ok || !page1Res.ok || !page2Res.ok) {
-        toast.error("Sample exam files aren't available yet.");
-        return;
-      }
-
-      const scriptFile = new File(
-        [await scriptRes.blob()],
-        "sample_answer_script.pdf",
-        { type: "application/pdf" },
-      );
-      const page1 = new File([await page1Res.blob()], "student1_page1.jpeg", {
-        type: "image/jpeg",
-      });
-      const page2 = new File([await page2Res.blob()], "student1_page2.jpeg", {
-        type: "image/jpeg",
-      });
-
-      setAnswerScript(scriptFile);
-      setStudentPages([page1, page2]);
-      toast.success(
-        "Sample exam loaded. Click 'Grade Answer Sheet' when ready.",
-      );
-    } catch {
-      toast.error("Could not load the sample exam.");
-    }
+  if (checking) {
+    return (
+      <main className="flex min-h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </main>
+    );
   }
 
   return (
-    <>
-      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
-        {/* Teacher session strip */}
-        <div className="mb-2">
-          {teacher ? (
-            <div className="flex justify-end">
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs">
-                <GraduationCap className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium text-foreground">
-                  Logged in as {teacher.name}
-                </span>
-                <span className="text-border">·</span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="font-semibold text-primary hover:underline"
-                >
-                  Logout
-                </button>
-              </span>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border border-border/70 bg-secondary/50 px-4 py-2.5 text-center text-xs text-muted-foreground">
-              <span>
-                Log in as a teacher to save grades to your student records
-              </span>
-              <span className="text-border">·</span>
-              <Link
-                href="/teacher/login"
-                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-              >
-                <LogIn className="h-3.5 w-3.5" />
-                Login
-              </Link>
-            </div>
-          )}
-        </div>
+    <main className="relative overflow-hidden">
+      {/* Decorative background glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-28 -top-28 h-80 w-80 rounded-full bg-primary/10 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 top-48 h-80 w-80 rounded-full bg-accent/20 blur-3xl"
+      />
 
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
         {/* Hero */}
         <motion.section
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-          className="grid items-center gap-8 py-6 sm:py-8 lg:grid-cols-[1.45fr_1fr]"
+          transition={{ duration: 0.55, ease: EASE }}
+          className="grid items-center gap-10 py-8 sm:py-12 lg:grid-cols-[1.3fr_1fr]"
         >
           <div>
-            <Badge
-              variant="secondary"
-              className="mb-4 gap-1.5 rounded-full border border-border/60 px-3 py-1.5 text-xs font-medium"
-            >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary px-3 py-1.5 text-xs font-medium text-foreground">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
               AI Grading Companion ·{" "}
               <span className="font-bengali">বাংলায় feedback</span>
-            </Badge>
-            <h1 className="text-balance text-3xl font-extrabold leading-[1.12] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Grade a full answer sheet in{" "}
-              <span className="text-primary">20 seconds.</span>
+            </span>
+            <h1 className="mt-4 text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              Shikshak<span className="text-primary">Sathi</span>
             </h1>
-            <p className="mt-4 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-              Upload your answer script and the student&apos;s pages. Get
-              rubric-graded scores with feedback in Bengali, Hindi, or English.
+            <p className="mt-3 text-balance text-lg font-semibold text-foreground sm:text-xl">
+              The AI grading assistant for India&apos;s classrooms.
             </p>
+            <p className="mt-3 max-w-xl text-balance text-base text-muted-foreground">
+              Teachers grade handwritten answer sheets in seconds and share
+              rubric-based feedback in Bengali, Hindi, or English. Students log
+              in to see their results, feedback, and personalised lesson plans.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button asChild size="lg" className="h-12 px-6 text-base">
+                <Link href="/teacher/login">
+                  <GraduationCap />
+                  Teacher Login
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-12 px-6 text-base"
+              >
+                <Link href="/student/login">🎒 Student Login</Link>
+              </Button>
+            </div>
           </div>
-          <div className="hidden lg:flex lg:justify-end">
-            <div className="h-56 w-56 xl:h-64 xl:w-64">
+          <div className="flex justify-center lg:justify-end">
+            <div className="h-56 w-56 sm:h-72 sm:w-72">
               <ExamGraphic />
             </div>
           </div>
         </motion.section>
 
-        {/* Training-archive "data flywheel" counter */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+        {/* Role cards */}
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35, ease: EASE }}
-          className="mb-6"
+          transition={{ duration: 0.55, delay: 0.15, ease: EASE }}
         >
-          <TrainingArchiveStats />
-        </motion.div>
+          <h2 className="text-center text-xl font-bold text-foreground sm:text-2xl">
+            Get started
+          </h2>
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            Choose how you&apos;ll use ShikshakSathi
+          </p>
 
-        {/* Try sample exam */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mb-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground"
-        >
-          <span>Don&apos;t have files?</span>
-          <button
-            type="button"
-            onClick={loadSample}
-            className="inline-flex items-center gap-1 rounded font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/75"
-          >
-            <Wand2 className="h-3.5 w-3.5" />
-            Try sample exam
-          </button>
-        </motion.div>
-
-        {/* Optional student linkage */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.22, ease: EASE }}
-          className="mb-3"
-        >
-          <div className="grid gap-4 rounded-2xl border border-border/70 bg-card p-4 sm:grid-cols-2 sm:p-5">
-            <div className="space-y-1.5">
-              <Label htmlFor="roll-input">
-                Student Roll Number{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            {/* Teacher card */}
+            <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+              <div className="h-2 bg-gradient-to-r from-primary to-primary/60" />
+              <div className="p-6">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <GraduationCap className="h-6 w-6" />
                 </span>
-              </Label>
-              <Input
-                id="roll-input"
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                list={teacher ? "teacher-students" : undefined}
-                placeholder={
-                  teacher ? "Pick or type a roll number" : "e.g. CS2024-017"
-                }
-              />
-              {teacher && (
-                <datalist id="teacher-students">
-                  {students.map((s) => (
-                    <option key={s.roll_number} value={s.roll_number}>
-                      {s.name}
-                    </option>
-                  ))}
-                </datalist>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="subject-input">
-                Subject Override{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
-              <Input
-                id="subject-input"
-                value={subjectOverride}
-                onChange={(e) => setSubjectOverride(e.target.value)}
-                placeholder="e.g. Operating Systems"
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Main upload card */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.25, ease: EASE }}
-        >
-          <Card className="rounded-3xl border-border/70 bg-card p-6 shadow-xl shadow-primary/10 sm:p-8 lg:p-10">
-            <div className="grid gap-6 md:grid-cols-2">
-              <FileDropzone
-                label="Answer Script"
-                description="Upload the official answer script — PDF or image. Single file."
-                accept={ACCEPT}
-                icon={<FileText className="h-6 w-6" />}
-                files={answerScript ? [answerScript] : []}
-                onFilesChange={(files) => setAnswerScript(files[0] ?? null)}
-              />
-              <FileDropzone
-                label="Student Answer Pages"
-                description="Upload all pages in order. Up to 15 files."
-                accept={ACCEPT}
-                multiple
-                icon={<ScrollText className="h-6 w-6" />}
-                files={studentPages}
-                onFilesChange={setStudentPages}
-              />
-            </div>
-
-            <Separator className="my-6" />
-
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="mb-2 text-sm font-semibold text-foreground">
-                  Feedback language
+                <h3 className="mt-3 text-lg font-bold text-foreground">
+                  For Teachers
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Grade answer sheets in seconds, track your class, and give
+                  every student clear bilingual feedback.
                 </p>
-                <LanguageSelector value={language} onChange={setLanguage} />
+                <ul className="mt-3 space-y-1.5">
+                  {TEACHER_POINTS.map((point) => (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 text-sm text-foreground"
+                    >
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Button asChild>
+                    <Link href="/teacher/login">Teacher Login</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/teacher/signup">Create an account</Link>
+                  </Button>
+                </div>
               </div>
+            </Card>
 
-              <motion.div
-                whileHover={canGrade ? { scale: 1.02 } : undefined}
-                whileTap={canGrade ? { scale: 0.98 } : undefined}
-                title={
-                  canGrade
-                    ? undefined
-                    : "Upload an answer script and at least one student page."
-                }
-                className="w-full sm:w-auto"
-              >
-                <Button
-                  onClick={handleGrade}
-                  disabled={!canGrade}
-                  className="h-14 w-full rounded-xl px-8 text-lg [&_svg]:size-5 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none sm:w-auto"
-                >
-                  <Sparkles />
-                  Grade Answer Sheet
-                </Button>
-              </motion.div>
-            </div>
-          </Card>
-        </motion.div>
+            {/* Student card */}
+            <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+              <div className="h-2 bg-gradient-to-r from-accent to-accent/50" />
+              <div className="p-6">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-2xl">
+                  🎒
+                </span>
+                <h3 className="mt-3 text-lg font-bold text-foreground">
+                  For Students
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Log in with the roll number and password your teacher gave
+                  you to see all your graded exams in one place.
+                </p>
+                <ul className="mt-3 space-y-1.5">
+                  <li className="flex items-start gap-2 text-sm text-foreground">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                    Every exam score and percentage
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-foreground">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                    Question-by-question feedback with audio
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-foreground">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                    Personalised lesson plans from your teacher
+                  </li>
+                </ul>
+                <div className="mt-5">
+                  <Button asChild>
+                    <Link href="/student/login">Student Login</Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </motion.section>
 
-        {/* Trust badges */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+        {/* Feature highlights */}
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5, ease: EASE }}
-          className="mt-6 grid gap-3 sm:grid-cols-3"
+          transition={{ duration: 0.55, delay: 0.3, ease: EASE }}
+          className="mt-12"
         >
-          {TRUST_BADGES.map((badge) => (
-            <div
-              key={badge.text}
-              className="flex items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3"
-            >
-              <span
-                aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-base"
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"
               >
-                {badge.emoji}
-              </span>
-              <p className="text-xs font-medium text-foreground">
-                {badge.text}
-              </p>
-            </div>
-          ))}
-        </motion.div>
-      </main>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <f.icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-3 text-sm font-bold text-foreground">
+                  {f.title}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {f.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
 
-      <GradingProgress isOpen={isGrading} />
-    </>
+        <p className="mt-12 text-center text-xs text-muted-foreground">
+          Built for India&apos;s teachers · Feedback in{" "}
+          <span className="font-bengali">বাংলা</span> · हिन्दी · English
+        </p>
+      </div>
+    </main>
   );
 }

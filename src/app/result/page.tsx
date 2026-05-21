@@ -10,6 +10,7 @@ import {
   Loader2,
   Plus,
   RotateCcw,
+  TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -175,7 +176,7 @@ export default function ResultPage() {
               Upload an answer sheet to see results here.
             </p>
             <Button asChild className="mt-6 w-full">
-              <Link href="/">Go to Grade Page</Link>
+              <Link href="/grade">Go to Grade Page</Link>
             </Button>
           </Card>
         </motion.div>
@@ -224,7 +225,7 @@ export default function ResultPage() {
             variant="ghost"
             className="text-muted-foreground hover:text-foreground"
           >
-            <Link href="/">
+            <Link href="/grade">
               <ArrowLeft />
               Back to Grade
             </Link>
@@ -234,7 +235,7 @@ export default function ResultPage() {
           </Badge>
         </div>
         <Button asChild>
-          <Link href="/">
+          <Link href="/grade">
             <Plus />
             Grade Another Sheet
           </Link>
@@ -294,6 +295,46 @@ export default function ResultPage() {
           summary={student_summary}
         />
       </Reveal>
+
+      {/* Low-readability reupload prompt */}
+      {student_summary.overall_readability === "LOW" && (
+        <Reveal delay={0.15}>
+          <Card className="rounded-2xl border-amber-500/30 bg-amber-50/60 p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600">
+                <TriangleAlert className="h-5 w-5" />
+              </span>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground">
+                  Image Quality Was Poor
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Some pages were difficult to read, which may have affected
+                  grading accuracy. For more reliable scores, consider grading
+                  again with sharper photos:
+                </p>
+                <ul className="ml-4 mt-2 list-disc space-y-0.5 text-xs text-muted-foreground">
+                  <li>Place the paper flat on a table</li>
+                  <li>Use natural daylight or a desk lamp</li>
+                  <li>Hold phone directly above (no tilt)</li>
+                  <li>Tap the photo to focus before shooting</li>
+                </ul>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 border-amber-500/40 text-amber-700 hover:bg-amber-500/10"
+                >
+                  <Link href="/grade">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Grade Again with Better Photos
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </Reveal>
+      )}
 
       {/* Breakdown heading */}
       <Reveal delay={0.2}>

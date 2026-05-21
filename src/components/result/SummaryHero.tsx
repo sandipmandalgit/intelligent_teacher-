@@ -1,7 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, CheckCircle2, CircleSlash, Eye } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  CircleSlash,
+  Eye,
+  EyeOff,
+  TriangleAlert,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { type StudentSummary } from "@/lib/result";
 import { ScoreRing } from "./ScoreRing";
@@ -27,6 +34,25 @@ function headline(percentage: number): string {
  */
 export function SummaryHero({ subject, summary }: SummaryHeroProps) {
   const pct = Math.round(summary.percentage);
+
+  // Readability indicator — colours brightened for the teal hero.
+  const readability = {
+    HIGH: {
+      Icon: Eye,
+      iconClass: "h-3.5 w-3.5 text-emerald-300",
+      label: "✓ Handwriting was clear",
+    },
+    MEDIUM: {
+      Icon: EyeOff,
+      iconClass: "h-3.5 w-3.5 text-amber-300",
+      label: "⚠ Some pages were hard to read — review carefully",
+    },
+    LOW: {
+      Icon: TriangleAlert,
+      iconClass: "h-3.5 w-3.5 text-red-300",
+      label: "⚠ Poor image quality — grading accuracy reduced",
+    },
+  }[summary.overall_readability];
 
   const tiles = [
     {
@@ -90,6 +116,22 @@ export function SummaryHero({ subject, summary }: SummaryHeroProps) {
               Scored {summary.total_score} of {summary.total_max_marks} marks ·{" "}
               {pct}% overall
             </p>
+
+            {/* Readability indicator pill */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 }}
+              className="mt-3"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1 text-xs font-semibold text-primary-foreground backdrop-blur-sm">
+                <readability.Icon
+                  className={readability.iconClass}
+                  aria-hidden
+                />
+                {readability.label}
+              </span>
+            </motion.div>
 
             <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
               {tiles.map((tile) => (
