@@ -303,13 +303,19 @@ export default function TeacherDashboardPage() {
           </Card>
         ) : !analytics || analytics.subject_performance.length === 0 ? (
           <Card className="rounded-2xl border-dashed border-border bg-secondary/40 p-8 text-center shadow-none">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary">
+              <BookOpen className="h-6 w-6 text-primary" aria-hidden />
+            </span>
             <p className="text-sm font-medium text-foreground">
-              No subject analytics yet
+              No graded subjects yet
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Grade your first exam and submit it to see subject analytics
-              here.
+              Grade and submit your first answer sheet to see subject
+              analytics here.
             </p>
+            <Button asChild size="sm" className="mt-3">
+              <Link href="/grade">Grade a sheet</Link>
+            </Button>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -12,7 +12,6 @@ import {
   ScrollText,
   ShieldCheck,
   Sparkles,
-  Wand2,
   Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -297,41 +296,6 @@ export default function GradePage() {
     }
   }
 
-  async function loadSample() {
-    try {
-      const [scriptRes, page1Res, page2Res] = await Promise.all([
-        fetch("/samples/sample_answer_script.pdf"),
-        fetch("/samples/student1_page1.jpeg"),
-        fetch("/samples/student1_page2.jpeg"),
-      ]);
-
-      if (!scriptRes.ok || !page1Res.ok || !page2Res.ok) {
-        toast.error("Sample exam files aren't available yet.");
-        return;
-      }
-
-      const scriptFile = new File(
-        [await scriptRes.blob()],
-        "sample_answer_script.pdf",
-        { type: "application/pdf" },
-      );
-      const page1 = new File([await page1Res.blob()], "student1_page1.jpeg", {
-        type: "image/jpeg",
-      });
-      const page2 = new File([await page2Res.blob()], "student1_page2.jpeg", {
-        type: "image/jpeg",
-      });
-
-      setAnswerScript(scriptFile);
-      setStudentPages([page1, page2]);
-      toast.success(
-        "Sample exam loaded. Click 'Grade Answer Sheet' when ready.",
-      );
-    } catch {
-      toast.error("Could not load the sample exam.");
-    }
-  }
-
   // Auth still resolving / redirecting away.
   if (!authChecked || !teacher) {
     return (
@@ -404,24 +368,6 @@ export default function GradePage() {
           <TrainingArchiveStats />
         </motion.div>
 
-        {/* Try sample exam */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mb-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground"
-        >
-          <span>Don&apos;t have files?</span>
-          <button
-            type="button"
-            onClick={loadSample}
-            className="inline-flex items-center gap-1 rounded font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/75"
-          >
-            <Wand2 className="h-3.5 w-3.5" />
-            Try sample exam
-          </button>
-        </motion.div>
-
         {/* Optional student linkage */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -431,12 +377,7 @@ export default function GradePage() {
         >
           <div className="grid gap-4 rounded-2xl border border-border/70 bg-card p-4 sm:grid-cols-2 sm:p-5">
             <div className="space-y-1.5">
-              <Label htmlFor="roll-input">
-                Student Roll Number{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
+              <Label htmlFor="roll-input">Student Roll Number</Label>
               <Input
                 id="roll-input"
                 value={rollNumber}
@@ -453,12 +394,7 @@ export default function GradePage() {
               </datalist>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="subject-input">
-                Subject Override{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
+              <Label htmlFor="subject-input">Subject Override</Label>
               <Input
                 id="subject-input"
                 value={subjectOverride}

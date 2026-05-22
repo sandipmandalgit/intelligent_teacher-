@@ -73,7 +73,9 @@ export function ScoreBucketsChart({ buckets }: ScoreBucketsChartProps) {
       <div className="mt-4 h-[260px] w-full">
         {total === 0 ? (
           <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40">
-            <p className="text-sm text-muted-foreground">No score data yet</p>
+            <p className="text-sm text-muted-foreground">
+              No grading data yet
+            </p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

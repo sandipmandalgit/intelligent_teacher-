@@ -9,16 +9,14 @@ interface ArchiveStats {
   total_pages_archived: number;
   total_subjects: number;
   last_updated: string;
-  baseline: number;
 }
 
-// Shown if /api/stats can't be reached — the card must never go empty.
+// Shown if /api/stats can't be reached — honest zeros, never fake data.
 const FALLBACK_STATS: ArchiveStats = {
-  total_samples: 1287,
-  total_pages_archived: 3841,
-  total_subjects: 7,
+  total_samples: 0,
+  total_pages_archived: 0,
+  total_subjects: 0,
   last_updated: new Date().toISOString(),
-  baseline: 1287,
 };
 
 /** Counts up from 0 to `target` over `durationMs` once `start` is true. */
@@ -101,7 +99,7 @@ export function TrainingArchiveStats() {
         if (!cancelled) setStats(data);
       })
       .catch(() => {
-        // Graceful degradation — fall back to believable baseline numbers.
+        // Graceful degradation — fall back to honest zeros.
         if (!cancelled) setStats(FALLBACK_STATS);
       });
     return () => {
@@ -122,27 +120,38 @@ export function TrainingArchiveStats() {
         </h3>
       </div>
 
-      {/* Stat tiles */}
-      <div className="mt-4 grid grid-cols-3 gap-3 sm:gap-6">
-        <StatTile
-          value={data.total_samples}
-          label="Handwriting samples"
-          loading={loading}
-          start={!loading}
-        />
-        <StatTile
-          value={data.total_pages_archived}
-          label="Pages archived"
-          loading={loading}
-          start={!loading}
-        />
-        <StatTile
-          value={data.total_subjects}
-          label="Subjects covered"
-          loading={loading}
-          start={!loading}
-        />
-      </div>
+      {/* Stat tiles — or an inviting empty state when there's no data yet */}
+      {!loading && data.total_samples === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            Be the first to contribute to ShikshakSathi&apos;s training
+            dataset.
+          </span>{" "}
+          Every graded paper adds anonymized handwriting samples to improve
+          AI for Indian classrooms.
+        </p>
+      ) : (
+        <div className="mt-4 grid grid-cols-3 gap-3 sm:gap-6">
+          <StatTile
+            value={data.total_samples}
+            label="Handwriting samples"
+            loading={loading}
+            start={!loading}
+          />
+          <StatTile
+            value={data.total_pages_archived}
+            label="Pages archived"
+            loading={loading}
+            start={!loading}
+          />
+          <StatTile
+            value={data.total_subjects}
+            label="Subjects covered"
+            loading={loading}
+            start={!loading}
+          />
+        </div>
+      )}
 
       {/* Tagline + privacy badge */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-3">

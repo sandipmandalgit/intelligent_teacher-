@@ -80,7 +80,7 @@ export function LanguageDistributionChart({
         {total === 0 ? (
           <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40">
             <p className="text-sm text-muted-foreground">
-              No language data yet
+              No grading data yet
             </p>
           </div>
         ) : (

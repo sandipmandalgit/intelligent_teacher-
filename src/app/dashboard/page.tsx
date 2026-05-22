@@ -34,7 +34,6 @@ interface DashboardStats {
   total_pages_archived: number;
   total_subjects: number;
   last_updated: string;
-  baseline: number;
   avg_percentage: number;
   language_distribution: { bengali: number; hindi: number; english: number };
   score_buckets: Record<string, number>;
@@ -42,35 +41,22 @@ interface DashboardStats {
   recent_sessions: RecentSession[];
 }
 
-// Mirrors the API's fallback so the page is never blank, even offline.
+// Mirrors the API's fallback — honest zeros, never fake data.
 const FALLBACK_STATS: DashboardStats = {
-  total_samples: 1287,
-  total_pages_archived: 3841,
-  total_subjects: 7,
+  total_samples: 0,
+  total_pages_archived: 0,
+  total_subjects: 0,
   last_updated: new Date().toISOString(),
-  baseline: 1287,
-  avg_percentage: 68,
-  language_distribution: { bengali: 743, hindi: 312, english: 232 },
+  avg_percentage: 0,
+  language_distribution: { bengali: 0, hindi: 0, english: 0 },
   score_buckets: {
-    "0-20": 87,
-    "21-40": 156,
-    "41-60": 412,
-    "61-80": 487,
-    "81-100": 145,
+    "0-20": 0,
+    "21-40": 0,
+    "41-60": 0,
+    "61-80": 0,
+    "81-100": 0,
   },
-  top_common_mistakes: [
-    {
-      mistake: "Confusing process isolation vs thread memory sharing",
-      count: 142,
-    },
-    {
-      mistake: "Missing finiteness condition in algorithm definition",
-      count: 98,
-    },
-    { mistake: "Big O notation lacks upper-bound explanation", count: 76 },
-    { mistake: "Incorrect ACID property mapping", count: 54 },
-    { mistake: "TCP vs UDP reliability confusion", count: 43 },
-  ],
+  top_common_mistakes: [],
   recent_sessions: [],
 };
 

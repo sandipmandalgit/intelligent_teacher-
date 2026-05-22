@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  Download,
   FileQuestion,
   Loader2,
   Plus,
@@ -23,6 +24,7 @@ import { SummaryHero } from "@/components/result/SummaryHero";
 import { QuestionCard } from "@/components/result/QuestionCard";
 import { CommonMistakes } from "@/components/result/CommonMistakes";
 import { LessonPlanCard } from "@/components/result/LessonPlanCard";
+import { GradeReport } from "@/components/result/GradeReport";
 
 const STORAGE_KEY = "shikshaksathi:lastResult";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -208,7 +210,8 @@ export default function ResultPage() {
   })();
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:py-12">
+    <>
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:py-12 print:hidden">
       {/* Action row */}
       <Reveal
         delay={0}
@@ -230,12 +233,18 @@ export default function ResultPage() {
             Tap any score to override
           </Badge>
         </div>
-        <Button asChild>
-          <Link href="/grade">
-            <Plus />
-            Grade Another Sheet
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Download />
+            Download PDF
+          </Button>
+          <Button asChild>
+            <Link href="/grade">
+              <Plus />
+              Grade Another Sheet
+            </Link>
+          </Button>
+        </div>
       </Reveal>
 
       {/* Submit final grade to the student record */}
@@ -388,5 +397,15 @@ export default function ResultPage() {
         </p>
       </Reveal>
     </main>
+
+      {/* Print-only report — revealed by the browser's Save-as-PDF flow */}
+      <div className="hidden print:block">
+        <GradeReport
+          result={result}
+          overrides={overrides}
+          lessonPlan={lessonPlan}
+        />
+      </div>
+    </>
   );
 }

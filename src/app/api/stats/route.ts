@@ -4,12 +4,6 @@ export const dynamic = "force-dynamic"; // never cache — counter should be liv
 import { NextResponse } from "next/server";
 import { getDb, COLLECTIONS } from "@/lib/mongodb";
 
-/**
- * Seed offset so the live counter starts at a believable number — it
- * represents handwriting samples gathered during the beta period.
- */
-const BASELINE = 1287;
-
 interface RecentSession {
   _id: string;
   created_at: string;
@@ -29,39 +23,23 @@ const BUCKET_LABELS: Record<number, string> = {
   81: "81-100",
 };
 
-/** Served when MongoDB is unreachable — the Dashboard must never break. */
+/** Served when MongoDB is unreachable — honest zeros, never fake data. */
 function fallbackStats() {
   return {
-    total_samples: 1287,
-    total_pages_archived: 3841,
-    total_subjects: 7,
+    total_samples: 0,
+    total_pages_archived: 0,
+    total_subjects: 0,
     last_updated: new Date().toISOString(),
-    baseline: BASELINE,
-    avg_percentage: 68,
-    language_distribution: { bengali: 743, hindi: 312, english: 232 },
+    avg_percentage: 0,
+    language_distribution: { bengali: 0, hindi: 0, english: 0 },
     score_buckets: {
-      "0-20": 87,
-      "21-40": 156,
-      "41-60": 412,
-      "61-80": 487,
-      "81-100": 145,
+      "0-20": 0,
+      "21-40": 0,
+      "41-60": 0,
+      "61-80": 0,
+      "81-100": 0,
     },
-    top_common_mistakes: [
-      {
-        mistake: "Confusing process isolation vs thread memory sharing",
-        count: 142,
-      },
-      {
-        mistake: "Missing finiteness condition in algorithm definition",
-        count: 98,
-      },
-      {
-        mistake: "Big O notation lacks upper-bound explanation",
-        count: 76,
-      },
-      { mistake: "Incorrect ACID property mapping", count: 54 },
-      { mistake: "TCP vs UDP reliability confusion", count: 43 },
-    ],
+    top_common_mistakes: [] as { mistake: string; count: number }[],
     recent_sessions: [] as RecentSession[],
   };
 }
@@ -215,11 +193,10 @@ export async function GET() {
     }));
 
     return NextResponse.json({
-      total_samples: BASELINE + actualCount,
+      total_samples: actualCount,
       total_pages_archived: totalPages,
       total_subjects: totalSubjects,
       last_updated: lastUpdated,
-      baseline: BASELINE,
       avg_percentage: avgPercentage,
       language_distribution: languageDistribution,
       score_buckets: scoreBuckets,
