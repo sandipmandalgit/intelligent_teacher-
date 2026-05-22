@@ -24,6 +24,7 @@ import { FileDropzone } from "@/components/upload/FileDropzone";
 import { GradingProgress } from "@/components/upload/GradingProgress";
 import { LanguageSelector } from "@/components/upload/LanguageSelector";
 import { TrainingArchiveStats } from "@/components/TrainingArchiveStats";
+import { BlurryImageDialog } from "@/components/upload/BlurryImageDialog";
 import { findBlurryImages } from "@/lib/blur-check";
 
 type Language = "bengali" | "hindi" | "english";
@@ -111,6 +112,10 @@ export default function GradePage() {
   const [rollNumber, setRollNumber] = useState("");
   const [subjectOverride, setSubjectOverride] = useState("");
 
+  // Blur-warning pop-up (replaces the native window.confirm).
+  const [blurryDialogOpen, setBlurryDialogOpen] = useState(false);
+  const [blurryFilenames, setBlurryFilenames] = useState<string[]>([]);
+
   const canGrade = answerScript !== null && studentPages.length > 0;
 
   // Gate: only signed-in teachers can reach the grading tool.
@@ -151,30 +156,37 @@ export default function GradePage() {
   async function handleGrade() {
     if (!answerScript || studentPages.length === 0) return;
 
-    // Quick client-side blur check before grading.
+    // Quick client-side blur check before grading. If anything looks
+    // blurry, pause and surface the styled warning dialog instead.
     toast("Checking image quality...", { duration: 1500 });
     const blurryImages = await findBlurryImages(studentPages);
     if (blurryImages.length > 0) {
-      const filenames = blurryImages.map((b) => b.filename).join(", ");
-      const proceed = window.confirm(
-        `⚠️ Image Quality Warning\n\n` +
-          `${blurryImages.length} image(s) appear to be blurry:\n` +
-          `${filenames}\n\n` +
-          `Blurry images may produce inaccurate grades. ` +
-          `For best results, retake them with:\n` +
-          `• Better lighting\n` +
-          `• Phone held flat over the paper\n` +
-          `• Steady hand (or rest phone on something)\n\n` +
-          `Click OK to grade anyway, or Cancel to retake.`,
-      );
-      if (!proceed) {
-        toast("Grading cancelled. Please retake the blurry images.");
-        return;
-      }
-      toast(
-        "Proceeding with lower-quality images. Results may be less accurate.",
-      );
+      setBlurryFilenames(blurryImages.map((b) => b.filename));
+      setBlurryDialogOpen(true);
+      return;
     }
+
+    runGrading();
+  }
+
+  /** "Grade anyway" from the blur warning — proceed with the upload as-is. */
+  function handleGradeAnyway() {
+    setBlurryDialogOpen(false);
+    toast(
+      "Proceeding with lower-quality images. Results may be less accurate.",
+    );
+    runGrading();
+  }
+
+  /** "Retake photos" from the blur warning — cancel and let the teacher re-shoot. */
+  function handleRetakeBlurry() {
+    setBlurryDialogOpen(false);
+    toast("Grading cancelled. Please retake the blurry images.");
+  }
+
+  /** The actual grading + archive flow, run once image quality is settled. */
+  async function runGrading() {
+    if (!answerScript || studentPages.length === 0) return;
 
     setIsGrading(true);
 
@@ -492,6 +504,13 @@ export default function GradePage() {
       </main>
 
       <GradingProgress isOpen={isGrading} />
+
+      <BlurryImageDialog
+        open={blurryDialogOpen}
+        filenames={blurryFilenames}
+        onGradeAnyway={handleGradeAnyway}
+        onRetake={handleRetakeBlurry}
+      />
     </>
   );
 }

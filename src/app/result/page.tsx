@@ -25,6 +25,7 @@ import { QuestionCard } from "@/components/result/QuestionCard";
 import { CommonMistakes } from "@/components/result/CommonMistakes";
 import { LessonPlanCard } from "@/components/result/LessonPlanCard";
 import { GradeReport } from "@/components/result/GradeReport";
+import { LowReadabilityDialog } from "@/components/result/LowReadabilityDialog";
 
 const STORAGE_KEY = "shikshaksathi:lastResult";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -83,6 +84,7 @@ export default function ResultPage() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submittedName, setSubmittedName] = useState("");
   const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
+  const [showReadabilityWarning, setShowReadabilityWarning] = useState(false);
 
   useEffect(() => {
     try {
@@ -95,6 +97,10 @@ export default function ResultPage() {
       if (isGradingResult(parsed)) {
         setResult(parsed);
         setState("ready");
+        // Poor image quality — pop up a re-upload prompt right away.
+        if (parsed.student_summary?.overall_readability === "LOW") {
+          setShowReadabilityWarning(true);
+        }
       } else {
         setState("empty");
       }
@@ -397,6 +403,12 @@ export default function ResultPage() {
         </p>
       </Reveal>
     </main>
+
+      {/* Poor-image-quality pop-up — prompts a re-upload */}
+      <LowReadabilityDialog
+        open={showReadabilityWarning}
+        onOpenChange={setShowReadabilityWarning}
+      />
 
       {/* Print-only report — revealed by the browser's Save-as-PDF flow */}
       <div className="hidden print:block">

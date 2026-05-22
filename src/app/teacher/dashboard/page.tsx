@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatTile } from "@/components/dashboard/StatTile";
 import { RecentSessionsTable } from "@/components/dashboard/RecentSessionsTable";
+import { ScoreBucketsChart } from "@/components/dashboard/ScoreBucketsChart";
 import {
   SubjectPerformanceCard,
   type SubjectPerformance,
@@ -201,6 +202,24 @@ export default function TeacherDashboardPage() {
       )
     : 0;
 
+  // Bucket every session's percentage into 20-point bands for the
+  // score-distribution chart.
+  const scoreBuckets = sessions.reduce<Record<string, number>>((acc, s) => {
+    const p = s.percentage;
+    const key =
+      p <= 20
+        ? "0-20"
+        : p <= 40
+          ? "21-40"
+          : p <= 60
+            ? "41-60"
+            : p <= 80
+              ? "61-80"
+              : "81-100";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
   if (loading) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center">
@@ -340,6 +359,15 @@ export default function TeacherDashboardPage() {
             ))}
           </div>
         )}
+      </motion.div>
+
+      {/* Score Distribution — how students are scoring across all sessions */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.18, ease: EASE }}
+      >
+        <ScoreBucketsChart buckets={scoreBuckets} />
       </motion.div>
 
       {/* My Students */}
