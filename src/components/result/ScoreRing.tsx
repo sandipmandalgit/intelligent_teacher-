@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -148,7 +149,7 @@ export function ScoreRing({
     onScoreChange?.(clamped);
     setDialogOpen(false);
     toast(
-      "Score overridden. ShikshakSathi will learn from your correction. ✨",
+      "Score overridden. ShikshakSathi will learn from your correction.",
     );
   }
 
@@ -168,9 +169,17 @@ export function ScoreRing({
         {/* Hover hint */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-[0.625rem] font-semibold text-background opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          className="pointer-events-none absolute -top-7 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-[0.625rem] font-semibold text-background opacity-0 transition-opacity duration-200 group-hover:opacity-100"
         >
-          ✏️ Edit
+          <Pencil className="h-3 w-3" />
+          Edit
+        </span>
+        {/* Always-visible edit affordance — discoverable on touch too. */}
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm"
+        >
+          <Pencil className="h-2.5 w-2.5" />
         </span>
       </button>
 

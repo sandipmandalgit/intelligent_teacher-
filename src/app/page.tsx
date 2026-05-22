@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Backpack,
   BarChart3,
   BookOpenCheck,
   Check,
@@ -14,7 +14,6 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -176,22 +175,12 @@ export default function LandingPage() {
               rubric-based feedback in Bengali, Hindi, or English. Students log
               in to see their results, feedback, and personalised lesson plans.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="h-12 px-6 text-base">
-                <Link href="/teacher/login">
-                  <GraduationCap />
-                  Teacher Login
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-12 px-6 text-base"
-              >
-                <Link href="/student/login">🎒 Student Login</Link>
-              </Button>
-            </div>
+            <p className="mt-6 text-sm text-muted-foreground">
+              Log in or sign up from the{" "}
+              <span className="font-semibold text-foreground">Teacher</span> or{" "}
+              <span className="font-semibold text-foreground">Student</span>{" "}
+              menu in the top bar.
+            </p>
           </div>
           <div className="flex justify-center lg:justify-end">
             <div className="h-56 w-56 sm:h-72 sm:w-72">
@@ -239,14 +228,11 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Button asChild>
-                    <Link href="/teacher/login">Teacher Login</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/teacher/signup">Create an account</Link>
-                  </Button>
-                </div>
+                <p className="mt-5 text-xs font-medium text-muted-foreground">
+                  → Open the{" "}
+                  <span className="font-semibold text-primary">Teacher</span>{" "}
+                  menu in the top bar to log in or create an account.
+                </p>
               </div>
             </Card>
 
@@ -254,8 +240,8 @@ export default function LandingPage() {
             <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
               <div className="h-2 bg-gradient-to-r from-accent to-accent/50" />
               <div className="p-6">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-2xl">
-                  🎒
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-sky-700">
+                  <Backpack className="h-6 w-6" />
                 </span>
                 <h3 className="mt-3 text-lg font-bold text-foreground">
                   For Students
@@ -278,11 +264,11 @@ export default function LandingPage() {
                     Personalised lesson plans from your teacher
                   </li>
                 </ul>
-                <div className="mt-5">
-                  <Button asChild>
-                    <Link href="/student/login">Student Login</Link>
-                  </Button>
-                </div>
+                <p className="mt-5 text-xs font-medium text-muted-foreground">
+                  → Open the{" "}
+                  <span className="font-semibold text-primary">Student</span>{" "}
+                  menu in the top bar to log in.
+                </p>
               </div>
             </Card>
           </div>

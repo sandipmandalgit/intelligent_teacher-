@@ -19,7 +19,7 @@ interface StatTileProps {
 const TONE_STYLES: Record<Tone, { tile: string; icon: string }> = {
   primary: { tile: "bg-primary/10", icon: "text-primary" },
   success: { tile: "bg-success/10", icon: "text-success" },
-  accent: { tile: "bg-accent/20", icon: "text-amber-600" },
+  accent: { tile: "bg-accent/15", icon: "text-sky-700" },
   neutral: { tile: "bg-muted", icon: "text-muted-foreground" },
 };
 

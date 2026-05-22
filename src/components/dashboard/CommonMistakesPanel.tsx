@@ -1,5 +1,6 @@
 "use client";
 
+import { Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface CommonMistakesPanelProps {
@@ -15,8 +16,9 @@ export function CommonMistakesPanel({ mistakes }: CommonMistakesPanelProps) {
 
   return (
     <Card className="rounded-2xl border-border/70 p-5 shadow-sm sm:p-6">
-      <h3 className="text-base font-bold text-foreground">
-        💡 Top Patterns Across All Classes
+      <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+        <Lightbulb className="h-4 w-4 text-primary" aria-hidden />
+        Top Patterns Across All Classes
       </h3>
       <p className="mt-0.5 text-xs text-muted-foreground">
         Recurring misconceptions that teachers should address school-wide

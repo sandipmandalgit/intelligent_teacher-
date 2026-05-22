@@ -5,11 +5,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
   FileQuestion,
   Loader2,
   Plus,
-  RotateCcw,
+  Pointer,
   TriangleAlert,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -75,7 +76,7 @@ function Reveal({
 export default function ResultPage() {
   const [state, setState] = useState<LoadState>("loading");
   const [result, setResult] = useState<GradingResult | null>(null);
-  const [hasEdits, setHasEdits] = useState(false);
+  const [overrides, setOverrides] = useState<Record<number, number>>({});
   const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submittedName, setSubmittedName] = useState("");
@@ -190,30 +191,24 @@ export default function ResultPage() {
   const hasCommonMistakes =
     Array.isArray(common_mistakes) && common_mistakes.length > 0;
 
+  // Apply teacher score overrides to a live summary so the hero, total
+  // score and percentage update instantly — no page refresh needed.
+  const liveSummary = (() => {
+    if (Object.keys(overrides).length === 0) return student_summary;
+    const total = graded_questions.reduce(
+      (sum, q) => sum + (overrides[q.question_number] ?? q.score ?? 0),
+      0,
+    );
+    const max = student_summary.total_max_marks;
+    return {
+      ...student_summary,
+      total_score: total,
+      percentage: max > 0 ? Math.round((total / max) * 100) : 0,
+    };
+  })();
+
   return (
     <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:py-12">
-      {/* Edited-scores banner — appears after the first override */}
-      {hasEdits && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: EASE }}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3"
-        >
-          <p className="text-sm font-medium text-foreground">
-            Some scores have been edited. Refresh to update the summary.
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.location.reload()}
-          >
-            <RotateCcw />
-            Refresh
-          </Button>
-        </motion.div>
-      )}
-
       {/* Action row */}
       <Reveal
         delay={0}
@@ -231,7 +226,8 @@ export default function ResultPage() {
             </Link>
           </Button>
           <Badge variant="secondary" className="gap-1">
-            ✋ Tap any score to override
+            <Pointer className="h-3 w-3" />
+            Tap any score to override
           </Badge>
         </div>
         <Button asChild>
@@ -263,8 +259,9 @@ export default function ResultPage() {
                     Submit to save it to the student&apos;s permanent record.
                   </p>
                   {lessonPlan && (
-                    <p className="mt-0.5 text-xs font-medium text-success">
-                      ✓ Your lesson plan will be saved with this grade
+                    <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-success">
+                      <Check className="h-3 w-3" />
+                      Your lesson plan will be saved with this grade
                     </p>
                   )}
                 </div>
@@ -290,10 +287,7 @@ export default function ResultPage() {
 
       {/* Summary hero */}
       <Reveal delay={0.1}>
-        <SummaryHero
-          subject={answer_script.subject}
-          summary={student_summary}
-        />
+        <SummaryHero subject={answer_script.subject} summary={liveSummary} />
       </Reveal>
 
       {/* Low-readability reupload prompt */}
@@ -355,7 +349,9 @@ export default function ResultPage() {
             <QuestionCard
               question={question}
               defaultExpanded={i === 0}
-              onEdit={() => setHasEdits(true)}
+              onEdit={(qn, newScore) =>
+                setOverrides((prev) => ({ ...prev, [qn]: newScore }))
+              }
             />
           </Reveal>
         ))}

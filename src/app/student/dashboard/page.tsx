@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Award, BookOpen, Loader2, LogOut, TrendingUp } from "lucide-react";
+import {
+  Award,
+  Backpack,
+  BookOpen,
+  Loader2,
+  LogOut,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/dashboard/StatTile";
 import {
@@ -88,8 +95,8 @@ export default function StudentDashboardPage() {
         className="flex flex-wrap items-start justify-between gap-4"
       >
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-2xl">
-            🎒
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-sky-700">
+            <Backpack className="h-6 w-6" />
           </span>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground">

@@ -3,7 +3,13 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpenCheck, ChevronDown, LogOut } from "lucide-react";
+import {
+  Backpack,
+  BookOpenCheck,
+  ChevronDown,
+  GraduationCap,
+  LogOut,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AuthState {
@@ -59,7 +65,7 @@ function NavMenu({
   onClose,
   children,
 }: {
-  trigger: string;
+  trigger: ReactNode;
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -171,7 +177,14 @@ export function Navbar() {
           {auth.role !== "student" && (
             <NavMenu
               trigger={
-                auth.role === "teacher" ? `👩‍🏫 ${auth.label}` : "Teacher"
+                auth.role === "teacher" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <GraduationCap className="h-4 w-4 shrink-0" />
+                    {auth.label}
+                  </span>
+                ) : (
+                  "Teacher"
+                )
               }
               open={openMenu === "teacher"}
               onToggle={() =>
@@ -215,7 +228,14 @@ export function Navbar() {
           {auth.role !== "teacher" && (
             <NavMenu
               trigger={
-                auth.role === "student" ? `🎒 ${auth.label}` : "Student"
+                auth.role === "student" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Backpack className="h-4 w-4 shrink-0" />
+                    {auth.label}
+                  </span>
+                ) : (
+                  "Student"
+                )
               }
               open={openMenu === "student"}
               onToggle={() =>

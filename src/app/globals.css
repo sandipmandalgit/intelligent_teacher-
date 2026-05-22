@@ -4,45 +4,46 @@
 
 @layer base {
   :root {
-    /* ShikshakSathi warm theme — light only */
+    /* ShikshakSathi — professional blue theme (light only).
+       Values are HSL triplets consumed via hsl(var(--token)). */
 
     /* Surfaces */
-    --background: 43 100% 95%; /* cream  #FFF8E7 */
-    --foreground: 0 0% 10%; /* dark   #1A1A1A */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --background: 216 20% 95%; /* cool light grey */
+    --foreground: 222 24% 14%; /* dark slate ink */
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 222 24% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 222 24% 14%;
 
     /* Brand */
-    --primary: 193 72% 21%; /* deep teal    #0F4C5C */
-    --primary-foreground: 43 100% 97%;
-    --accent: 27 87% 67%; /* warm orange  #F4A261 */
-    --accent-foreground: 20 35% 14%;
-    --success: 173 58% 39%; /* green        #2A9D8F */
+    --primary: 224 64% 33%; /* deep blue   #1E3A8A */
+    --primary-foreground: 0 0% 100%;
+    --accent: 199 89% 48%; /* sky blue    #0EA5E9 */
+    --accent-foreground: 222 47% 16%; /* dark — readable on sky blue */
+    --success: 152 56% 36%; /* clean green */
     --success-foreground: 0 0% 100%;
 
     /* Neutrals */
-    --secondary: 42 48% 90%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 42 45% 91%;
-    --muted-foreground: 28 12% 40%;
+    --secondary: 214 30% 92%;
+    --secondary-foreground: 222 22% 20%;
+    --muted: 214 30% 93%;
+    --muted-foreground: 220 9% 46%; /* slate grey */
 
     /* Feedback */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     /* Lines & focus */
-    --border: 40 38% 85%;
-    --input: 40 38% 85%;
-    --ring: 193 72% 25%;
+    --border: 215 22% 87%;
+    --input: 215 22% 87%;
+    --ring: 224 64% 40%;
 
-    /* Charts (used by the dashboard later) */
-    --chart-1: 193 72% 25%;
-    --chart-2: 27 87% 67%;
-    --chart-3: 173 58% 39%;
-    --chart-4: 42 88% 58%;
-    --chart-5: 15 63% 56%;
+    /* Charts */
+    --chart-1: 224 64% 33%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 152 56% 36%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 222 14% 50%;
 
     --radius: 0.75rem;
   }

@@ -34,8 +34,8 @@ interface QuestionCardProps {
   question: GradedQuestion;
   /** Whether the card starts expanded (used for the first question). */
   defaultExpanded?: boolean;
-  /** Called the first time a teacher overrides this question's score. */
-  onEdit?: () => void;
+  /** Called when a teacher overrides this question's score. */
+  onEdit?: (questionNumber: number, newScore: number) => void;
   /** When true, the score ring is not editable (e.g. the student portal). */
   readOnly?: boolean;
 }
@@ -146,7 +146,7 @@ export function QuestionCard({
   function handleScoreChange(newScore: number) {
     setOverrideScore(newScore);
     persistScoreOverride(question_number, newScore);
-    onEdit?.();
+    onEdit?.(question_number, newScore);
   }
 
   return (

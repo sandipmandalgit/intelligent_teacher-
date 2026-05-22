@@ -7,16 +7,17 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { Globe } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface LanguageDistributionChartProps {
   distribution: { bengali: number; hindi: number; english: number };
 }
 
-// Theme colours (globals.css stores HSL triplets — wrap them in hsl()).
-const TEAL = "hsl(193 72% 21%)"; // --primary
-const ORANGE = "hsl(27 87% 58%)"; // --accent, darkened for contrast
-const GRAY = "hsl(28 12% 55%)"; // muted neutral
+// Theme colours — kept in sync with the globals.css design tokens.
+const PRIMARY = "hsl(224 64% 33%)"; // --primary, deep blue
+const SKY = "hsl(199 89% 48%)"; // --accent, sky blue
+const GRAY = "hsl(222 12% 55%)"; // muted neutral
 const WHITE = "hsl(0 0% 100%)";
 
 interface SliceDatum {
@@ -59,16 +60,17 @@ export function LanguageDistributionChart({
   distribution,
 }: LanguageDistributionChartProps) {
   const data: SliceDatum[] = [
-    { name: "Bengali", value: distribution?.bengali ?? 0, color: TEAL },
-    { name: "Hindi", value: distribution?.hindi ?? 0, color: ORANGE },
+    { name: "Bengali", value: distribution?.bengali ?? 0, color: PRIMARY },
+    { name: "Hindi", value: distribution?.hindi ?? 0, color: SKY },
     { name: "English", value: distribution?.english ?? 0, color: GRAY },
   ];
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <Card className="rounded-2xl border-border/70 p-5 shadow-sm sm:p-6">
-      <h3 className="text-base font-bold text-foreground">
-        🌐 Feedback Language Usage
+      <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+        <Globe className="h-4 w-4 text-primary" aria-hidden />
+        Feedback Language Usage
       </h3>
       <p className="mt-0.5 text-xs text-muted-foreground">
         Which languages teachers prefer for student feedback

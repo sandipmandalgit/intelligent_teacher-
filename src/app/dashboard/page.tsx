@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, FileText, Globe, RefreshCw, TrendingUp } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  Brain,
+  FileText,
+  Globe,
+  RefreshCw,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatTile } from "@/components/dashboard/StatTile";
@@ -150,8 +158,9 @@ export default function DashboardPage() {
         className="flex flex-wrap items-start justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-            📊 Class Performance Dashboard
+          <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+            <BarChart3 className="h-6 w-6 text-primary" aria-hidden />
+            Class Performance Dashboard
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Real-time analytics from ShikshakSathi&apos;s archive — every
@@ -248,8 +257,9 @@ export default function DashboardPage() {
 
       {/* Footer info strip */}
       <Reveal delay={0.75}>
-        <p className="text-center text-xs text-muted-foreground">
-          🧠 Data live from MongoDB Atlas · Updated{" "}
+        <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <Brain className="h-3.5 w-3.5" aria-hidden />
+          Data live from MongoDB Atlas · Updated{" "}
           {relativeTime(data.last_updated)} · No PII stored
         </p>
       </Reveal>

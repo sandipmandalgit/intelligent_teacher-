@@ -40,17 +40,17 @@ export function SummaryHero({ subject, summary }: SummaryHeroProps) {
     HIGH: {
       Icon: Eye,
       iconClass: "h-3.5 w-3.5 text-emerald-300",
-      label: "✓ Handwriting was clear",
+      label: "Handwriting was clear",
     },
     MEDIUM: {
       Icon: EyeOff,
       iconClass: "h-3.5 w-3.5 text-amber-300",
-      label: "⚠ Some pages were hard to read — review carefully",
+      label: "Some pages were hard to read — review carefully",
     },
     LOW: {
       Icon: TriangleAlert,
       iconClass: "h-3.5 w-3.5 text-red-300",
-      label: "⚠ Poor image quality — grading accuracy reduced",
+      label: "Poor image quality — grading accuracy reduced",
     },
   }[summary.overall_readability];
 

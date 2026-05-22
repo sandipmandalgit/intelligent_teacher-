@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Square, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PlayButtonProps {
@@ -98,7 +99,11 @@ export function PlayButton({ text, lang, voiceName }: PlayButtonProps) {
           : "border-border bg-card text-foreground hover:bg-secondary",
       )}
     >
-      <span aria-hidden>{speaking ? "⏹" : "🔊"}</span>
+      {speaking ? (
+        <Square className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <Volume2 className="h-3.5 w-3.5" aria-hidden />
+      )}
       {speaking ? "Stop" : "Play"}
     </button>
   );

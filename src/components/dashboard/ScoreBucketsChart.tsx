@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { BarChart3 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface ScoreBucketsChartProps {
@@ -17,10 +18,10 @@ interface ScoreBucketsChartProps {
 
 const BUCKET_ORDER = ["0-20", "21-40", "41-60", "61-80", "81-100"];
 
-// Theme colours (globals.css stores HSL triplets — wrap them in hsl()).
-const TEAL = "hsl(193 72% 21%)";
-const GRID = "hsl(40 38% 85%)";
-const AXIS = "hsl(28 12% 40%)";
+// Theme colours — kept in sync with the globals.css design tokens.
+const PRIMARY = "hsl(224 64% 33%)";
+const GRID = "hsl(215 22% 87%)";
+const AXIS = "hsl(220 9% 46%)";
 
 interface BarTooltipEntry {
   value?: number | string;
@@ -61,8 +62,9 @@ export function ScoreBucketsChart({ buckets }: ScoreBucketsChartProps) {
 
   return (
     <Card className="rounded-2xl border-border/70 p-5 shadow-sm sm:p-6">
-      <h3 className="text-base font-bold text-foreground">
-        📈 Score Distribution
+      <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+        <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
+        Score Distribution
       </h3>
       <p className="mt-0.5 text-xs text-muted-foreground">
         How students are scoring across all sessions
@@ -98,12 +100,12 @@ export function ScoreBucketsChart({ buckets }: ScoreBucketsChartProps) {
                 axisLine={false}
               />
               <Tooltip
-                cursor={{ fill: "hsl(193 72% 21% / 0.06)" }}
+                cursor={{ fill: "hsl(224 64% 33% / 0.06)" }}
                 content={<BucketTooltip total={total} />}
               />
               <Bar
                 dataKey="count"
-                fill={TEAL}
+                fill={PRIMARY}
                 radius={[6, 6, 0, 0]}
                 maxBarSize={64}
               />

@@ -8,9 +8,12 @@ import {
   FileText,
   GraduationCap,
   Loader2,
+  School,
   ScrollText,
+  ShieldCheck,
   Sparkles,
   Wand2,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,9 +42,12 @@ const ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const TRUST_BADGES = [
-  { emoji: "🔒", text: "Your files never leave Google's secure servers" },
-  { emoji: "⚡", text: "Sub-30-second grading" },
-  { emoji: "🇮🇳", text: "Built for Indian classrooms" },
+  {
+    icon: ShieldCheck,
+    text: "Your files never leave Google's secure servers",
+  },
+  { icon: Zap, text: "Sub-30-second grading" },
+  { icon: School, text: "Built for Indian classrooms" },
 ];
 
 /** Decorative SVG — stacked answer sheets with a checkmark badge. */
@@ -236,7 +242,7 @@ export default function GradePage() {
           if (archiveRes.ok && archiveJson?.session_id) {
             sessionMeta.session_id = String(archiveJson.session_id);
             toast.success(
-              "✓ Saved to the archive — submit on the next page to finalize",
+              "Saved to the archive — submit on the next page to finalize",
             );
           }
         } else {
@@ -244,7 +250,7 @@ export default function GradePage() {
             .then((archiveRes) => {
               if (archiveRes.ok) {
                 toast.success(
-                  "✓ Contributed to ShikshakSathi's open handwriting archive",
+                  "Contributed to ShikshakSathi's open handwriting archive",
                 );
               }
             })
@@ -537,9 +543,9 @@ export default function GradePage() {
             >
               <span
                 aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-base"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
               >
-                {badge.emoji}
+                <badge.icon className="h-4 w-4" />
               </span>
               <p className="text-xs font-medium text-foreground">
                 {badge.text}

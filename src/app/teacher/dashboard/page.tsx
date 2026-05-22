@@ -289,8 +289,9 @@ export default function TeacherDashboardPage() {
         transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
       >
         <div className="mb-3">
-          <h2 className="text-lg font-bold text-foreground">
-            📚 Subject Performance Overview
+          <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
+            <BookOpen className="h-5 w-5 text-primary" aria-hidden />
+            Subject Performance Overview
           </h2>
           <p className="text-sm text-muted-foreground">
             Per-subject performance across all your finalized grading sessions

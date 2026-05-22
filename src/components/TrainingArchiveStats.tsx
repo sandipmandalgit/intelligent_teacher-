@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Brain, Lock } from "lucide-react";
 
 interface ArchiveStats {
   total_samples: number;
@@ -115,9 +116,7 @@ export function TrainingArchiveStats() {
     <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-secondary to-accent/10 p-5 shadow-sm sm:p-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <span aria-hidden className="text-lg">
-          🧠
-        </span>
+        <Brain className="h-5 w-5 shrink-0 text-primary" aria-hidden />
         <h3 className="text-sm font-bold text-foreground sm:text-base">
           Building India&apos;s largest classroom AI dataset
         </h3>
@@ -151,7 +150,8 @@ export function TrainingArchiveStats() {
           Every grading session contributes anonymously
         </p>
         <span className="inline-flex items-center gap-1 rounded-full bg-card/70 px-2.5 py-1 text-[0.65rem] font-medium text-muted-foreground ring-1 ring-inset ring-border/60">
-          🔒 Anonymous · No PII · Used for OCR research
+          <Lock className="h-3 w-3" />
+          Anonymous · No PII · Used for OCR research
         </span>
       </div>
     </div>

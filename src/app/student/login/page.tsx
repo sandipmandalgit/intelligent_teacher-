@@ -3,7 +3,7 @@
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Sparkles } from "lucide-react";
+import { Backpack, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,8 +52,8 @@ export default function StudentLoginPage() {
       >
         <Card className="rounded-3xl border-border/70 p-8 shadow-xl shadow-primary/10">
           <div className="flex flex-col items-center text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-2xl">
-              🎒
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-sky-700">
+              <Backpack className="h-6 w-6" />
             </span>
             <h1 className="mt-3 text-xl font-bold text-foreground">
               Hi! Log in to see your grades

@@ -3,14 +3,23 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BookOpen,
   BookOpenCheck,
   Check,
+  ClipboardCheck,
   Clock,
+  GraduationCap,
   Loader2,
+  type LucideIcon,
+  MessageSquare,
   Pencil,
+  PencilRuler,
+  PenLine,
   Plus,
+  Quote,
   RotateCcw,
   Sparkles,
+  Target,
   Trash2,
   TriangleAlert,
   Wand2,
@@ -58,12 +67,12 @@ const TEXTAREA_CLASS =
 /* --------------------------- Small building blocks --------------------- */
 
 function LessonSection({
-  emoji,
+  icon: Icon,
   title,
   titleClassName,
   children,
 }: {
-  emoji: string;
+  icon: LucideIcon;
   title: string;
   titleClassName?: string;
   children: React.ReactNode;
@@ -76,9 +85,7 @@ function LessonSection({
           titleClassName,
         )}
       >
-        <span aria-hidden className="text-sm">
-          {emoji}
-        </span>
+        <Icon className="h-4 w-4" aria-hidden />
         {title}
       </h4>
       {children}
@@ -256,7 +263,7 @@ function PlanView({
       </motion.div>
 
       {/* 1 — Learning Objective */}
-      <LessonSection emoji="🎯" title="Learning Objective">
+      <LessonSection icon={Target} title="Learning Objective">
         <div className="rounded-xl bg-primary/[0.06] p-4 ring-1 ring-inset ring-primary/15">
           <p className="text-sm font-semibold leading-relaxed text-foreground">
             {plan.learning_objective}
@@ -265,7 +272,7 @@ function PlanView({
       </LessonSection>
 
       {/* 2 — Analogy */}
-      <LessonSection emoji="🇮🇳" title={plan.bengali_analogy_label || "Analogy"}>
+      <LessonSection icon={Quote} title={plan.bengali_analogy_label || "Analogy"}>
         <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
           <div className="flex items-start justify-between gap-3">
             <p
@@ -286,12 +293,12 @@ function PlanView({
       </LessonSection>
 
       {/* 3 — Blackboard Diagram */}
-      <LessonSection emoji="✏️" title="Blackboard Diagram">
+      <LessonSection icon={PencilRuler} title="Blackboard Diagram">
         <pre className="overflow-x-auto rounded-xl bg-zinc-800 p-4 font-mono text-xs leading-relaxed text-zinc-50">{plan.blackboard_diagram}</pre>
       </LessonSection>
 
       {/* 4 — Key Explanation */}
-      <LessonSection emoji="📖" title="Key Explanation">
+      <LessonSection icon={BookOpen} title="Key Explanation">
         <div className="rounded-xl border border-border/70 bg-background/60 p-4">
           <div className="mb-2 flex justify-end">
             <PlayButton
@@ -313,7 +320,7 @@ function PlanView({
 
       {/* 5 — Oral Quiz */}
       {plan.oral_quiz?.length > 0 && (
-        <LessonSection emoji="❓" title="Quick Oral Quiz">
+        <LessonSection icon={MessageSquare} title="Quick Oral Quiz">
           <ul className="space-y-2">
             {plan.oral_quiz.map((q, i) => (
               <QuizItem
@@ -330,7 +337,7 @@ function PlanView({
 
       {/* 6 — Homework Practice */}
       {plan.homework_questions?.length > 0 && (
-        <LessonSection emoji="📝" title="Homework Practice">
+        <LessonSection icon={PenLine} title="Homework Practice">
           <ol className="space-y-2">
             {plan.homework_questions.map((h, i) => (
               <li
@@ -351,7 +358,7 @@ function PlanView({
 
       {/* 7 — Teaching Notes */}
       {plan.teaching_notes && (
-        <LessonSection emoji="👩‍🏫" title="Teaching Notes">
+        <LessonSection icon={GraduationCap} title="Teaching Notes">
           <p
             className={cn(
               "text-sm italic leading-relaxed text-muted-foreground",
@@ -367,9 +374,10 @@ function PlanView({
       {readOnly ? (
         <motion.p
           variants={itemVariants}
-          className="pt-1 text-center text-xs text-muted-foreground"
+          className="flex items-center justify-center gap-1.5 pt-1 text-center text-xs text-muted-foreground"
         >
-          📋 This lesson plan was prepared by your teacher.
+          <ClipboardCheck className="h-3.5 w-3.5" aria-hidden />
+          This lesson plan was prepared by your teacher.
         </motion.p>
       ) : (
         <motion.div
@@ -471,7 +479,7 @@ function PlanEditor({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="lp-obj">🎯 Learning objective</Label>
+        <Label htmlFor="lp-obj">Learning objective</Label>
         <textarea
           id="lp-obj"
           rows={2}
@@ -491,7 +499,7 @@ function PlanEditor({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="lp-an">🇮🇳 Analogy</Label>
+          <Label htmlFor="lp-an">Analogy</Label>
           <textarea
             id="lp-an"
             rows={3}
@@ -503,7 +511,7 @@ function PlanEditor({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="lp-board">✏️ Blackboard diagram (ASCII)</Label>
+        <Label htmlFor="lp-board">Blackboard diagram (ASCII)</Label>
         <textarea
           id="lp-board"
           rows={7}
@@ -514,7 +522,7 @@ function PlanEditor({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="lp-key">📖 Key explanation</Label>
+        <Label htmlFor="lp-key">Key explanation</Label>
         <textarea
           id="lp-key"
           rows={3}
@@ -526,7 +534,7 @@ function PlanEditor({
 
       {/* Oral quiz */}
       <div className="space-y-2">
-        <Label>❓ Oral quiz</Label>
+        <Label>Oral quiz</Label>
         <div className="space-y-3">
           {draft.oral_quiz.map((q, i) => (
             <div key={i} className="rounded-lg border border-border/70 p-3">
@@ -581,7 +589,7 @@ function PlanEditor({
 
       {/* Homework */}
       <div className="space-y-2">
-        <Label>📝 Homework questions</Label>
+        <Label>Homework questions</Label>
         <div className="space-y-2">
           {draft.homework_questions.map((h, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -625,7 +633,7 @@ function PlanEditor({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="lp-notes">👩‍🏫 Teaching notes</Label>
+        <Label htmlFor="lp-notes">Teaching notes</Label>
         <textarea
           id="lp-notes"
           rows={2}
